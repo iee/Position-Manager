@@ -2,7 +2,6 @@ package position;
 
 import junit.framework.TestCase;
 
-import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.Position;
 import org.junit.Test;
 
@@ -16,9 +15,9 @@ public class PositionManagerTest extends TestCase {
 
 		/* TODO (pavele): Use mockito */
 
-		IDocument document = null;
+		//IDocument document = null;
 
-		fPositionManager = new PositionManager();
+		//fPositionManager = new PositionManager();
 	}
 
 	@Test
@@ -26,7 +25,7 @@ public class PositionManagerTest extends TestCase {
 		Position positionA = new Position(1, 10);
 		String contentA = "/* <--- */\n" + "JSON_OBJECT\n" + "/* ---> */\n";
 
-		fPositionManager.createPosition(positionA, contentA);
+		//fPositionManager.createPosition(positionA, contentA);
 
 		// TODO(pavel): check created position
 

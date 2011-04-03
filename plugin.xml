@@ -23,7 +23,7 @@
          point="org.eclipse.ui.views">
       <view
             name="View"
-            class="view.TextView"
+            class="view.TestView"
             id="Test.view">
       </view>
    </extension>
