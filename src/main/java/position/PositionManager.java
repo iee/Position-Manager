@@ -1,11 +1,11 @@
 package position;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.NavigableSet;
+import java.util.TreeSet;
 
 import org.eclipse.core.commands.common.EventManager;
 import org.eclipse.core.runtime.Assert;
@@ -31,27 +31,23 @@ public class PositionManager extends EventManager {
 	
 	private IDocument fDocument;
 	private IDocumentPartitioner fDocumentPartitioner;
-	private String fPartitioningCategory;
 	
-	private ArrayList<EmbeddedRange> fEmbeddedRanges;
+	private NavigableSet<EmbeddedRange> fEmbeddedRanges;
+	private Map<String, EmbeddedRange> fIdToEmbeddedRangeMap;
 	
-	private TreeMap<Position, EmbeddedRange> fPositionToEmbeddedRange;
 	
+	/* Public interface */
 
 	public EmbeddedRange getEmbeddedRange(String id) {
-		Iterator<EmbeddedRange> it = fEmbeddedRanges.iterator();
-		while (it.hasNext()) {
-			EmbeddedRange element = it.next();
-			if (element.getId().equals(id)) {
-				return element;
-			}
-		}
-		return null;
+		return fIdToEmbeddedRangeMap.get(id);		
 	}
 	
 	public Object[] getEmbeddedRanges() {
 		return fEmbeddedRanges.toArray();
 	}
+	
+	
+	/* Functions for observers */
 	
 	public void addStateChangedListener(IStateChangedListener listener) {
 		Assert.isNotNull(listener);
@@ -63,7 +59,7 @@ public class PositionManager extends EventManager {
 		removeListenerObject(listener);
 	}
 	
-	protected void doFireStateChangedEvent(StateChangedEvent event) {		
+	protected void fireStateChangedEvent(StateChangedEvent event) {		
 		Object[] listeners = getListeners();
 		for (int i = 0; i < listeners.length; i++) {
 			((IStateChangedListener) listeners[i]).stateChanged(event);
@@ -71,122 +67,188 @@ public class PositionManager extends EventManager {
 	}
 	
 	public PositionManager(IDocument document) {
-		fPositionToEmbeddedRange = new TreeMap<Position, EmbeddedRange>();
-		fEmbeddedRanges = new ArrayList<EmbeddedRange>();
+		fEmbeddedRanges = new TreeSet<EmbeddedRange>(new EmbeddedRangeComparator());
+		fIdToEmbeddedRangeMap = new HashMap<String, EmbeddedRange>();
 		fDocument = document;
 		
 		fDocumentPartitioner = new FastPartitioner(
 			new PartitioningScanner(),
 			new String[] { IConfiguration.CONTENT_TYPE_EMBEDDED });
-			
-		String[] categories = ((IDocumentPartitionerExtension2) fDocumentPartitioner).getManagingPositionCategories();
-		fPartitioningCategory = categories[0];
-		
+					
 		((IDocumentExtension3) fDocument).setDocumentPartitioner(
 				IConfiguration.PARTITIONING_ID, fDocumentPartitioner);
-		
-		initDocumentChangeListener();
-		initPartitioningChangeListener();
-		
+			
+		initDocumentListener();		
 		fDocumentPartitioner.connect(fDocument);
 	}
+				
+	protected void initDocumentListener() {		
+		class DocumentListener implements
+		IDocumentListener, IDocumentPartitioningListener, IDocumentPartitioningListenerExtension2
+		{        	
+        	private boolean fIsPartitionChanged;
 			
-	protected void initDocumentChangeListener() {		
-		fDocument.addDocumentListener(new IDocumentListener() {        	
+        	DocumentListener() {
+        		fIsPartitionChanged = false;
+        	}
+        	
         	@Override
-        	public void documentChanged(DocumentEvent event) {
-				try {				
-					ITypedRegion region = ((IDocumentExtension3) fDocument)
-						.getPartition(IConfiguration.PARTITIONING_ID, event.getOffset(), false);
-					
-					if (region.getType().equals(IConfiguration.CONTENT_TYPE_EMBEDDED)) {						
-						Position offsetPosition = new Position(event.getOffset(), 0);
-						
-						Position oldElementPosition = fPositionToEmbeddedRange.floorKey(offsetPosition);
-						Position newElementPosition = new Position(region.getOffset(), region.getLength());
-					
-						EmbeddedRange element = fPositionToEmbeddedRange.remove(oldElementPosition);
-						element.setPosition(newElementPosition);
-								
-						fPositionToEmbeddedRange.put(newElementPosition, element);
-					}
-
-					Position moveFrom = fPositionToEmbeddedRange.higherKey(
-						new Position(event.getOffset() + event.getLength(), 0));
-															
-					SortedMap<Position, EmbeddedRange> moving = fPositionToEmbeddedRange.tailMap(moveFrom, true);
-					
-	
-					//Position[] positions = fDocument.getPositions(fPartitioningCategory);
-					
-					//trace("My positions: " + Arrays.toString(positions));
-					
-/*					fEmbeddedRanges.clear();
-					int id = 0;
-					for (Position position : positions) {	
-						fEmbeddedRanges.add(new EmbeddedRange(Integer.toString(id++), "simple", position));
-					}*/
-					
-					doFireStateChangedEvent(new StateChangedEvent());
-					
-				} catch (BadLocationException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (BadPartitioningException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+			public void documentPartitioningChanged(DocumentPartitioningChangedEvent event) {
+        		if (event.getChangedRegion(IConfiguration.PARTITIONING_ID) != null) {
+					fIsPartitionChanged = true;
 				}
 			}
         	
-        	@Override
-        	public void documentAboutToBeChanged(DocumentEvent event) {
-    			//System.out.println(event.toString());
-        	}        	
-		});
-//		boolean containsPositionCategory(String category);
-//		Position[] getPositions(String category) throws BadPositionCategoryException;
-//		boolean containsPosition(String category, int offset, int length);
-//		int computeIndexInCategory(String category, int offset) throws BadLocationException, BadPositionCategoryException;
-//		String getContentType(int offset) throws BadLocationException;
-	}
-	
-	protected void initPartitioningChangeListener() {		
-		class DocumentPartitioningListener implements
-		IDocumentPartitioningListener,
-		IDocumentPartitioningListenerExtension2 {
 			@Override
-			public void documentPartitioningChanged(DocumentPartitioningChangedEvent event) {
-				if (event.isEmpty()) {
-					trace("no changes");
+        	public void documentChanged(DocumentEvent event) {
+				if (fIsPartitionChanged) {
+					onPartitioningChanged(event);
+				} else {
+					try {
+						ITypedRegion region = ((IDocumentExtension3) fDocument)
+							.getPartition(IConfiguration.PARTITIONING_ID, event.getOffset(), false);
+						
+						if (region.getType().equals(IConfiguration.CONTENT_TYPE_EMBEDDED)) {
+							onChangeInsideEmbeddedRange(event, region);			
+						} else {
+							onChangeOutsideEmbeddedRanges(event);
+						}
+						
+					} catch (BadLocationException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (BadPartitioningException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}
+					
+				fIsPartitionChanged = false;
+				fireStateChangedEvent(new StateChangedEvent());
+			}
+			
+			private void onPartitioningChanged(DocumentEvent event) {
+				
+				/* If changed area contains some embedded regions (that means that partitioning change event has occurred),
+				 * we have to update embedded ranges set and id mapping. All elements between fistModified and firstMoved
+				 * were removed, new elements can be possibly created.
+				 */
+				
+				EmbeddedRange first = fEmbeddedRanges.higher(
+					EmbeddedRange.atOffset(event.getOffset()));
+				
+				EmbeddedRange last = fEmbeddedRanges.floor(
+						EmbeddedRange.atOffset(event.getOffset() + event.getLength()));
+				
+				if (first != null) {
+					NavigableSet<EmbeddedRange> removedSet =
+						fEmbeddedRanges.subSet(first, true, last, true);
+						
+					/* Remove elements from set */
+						
+					Iterator<EmbeddedRange> it = removedSet.iterator();
+					while (it.hasNext()) {
+						EmbeddedRange e = it.next();
+						e.setIsVisiable(false);
+						fEmbeddedRanges.remove(e);
+					}
+				}
+				
+				/* Scan text area for new elements */
 
-				IRegion changedRegion = event.getChangedRegion(IConfiguration.CONTENT_TYPE_EMBEDDED);
-				trace("Region: " + changedRegion.toString());
-	
-				for (String s : event.getChangedPartitionings()) {
-					trace("Changed partitionings: " + s);
-				}
+				int offset = event.getOffset();
+				while (offset < event.getOffset() + event.getLength()) {
+					ITypedRegion region = ((IDocumentExtension3) fDocument)
+						.getPartition(IConfiguration.PARTITIONING_ID, offset, false);
+					
+					if (region.getType().equals(IConfiguration.CONTENT_TYPE_EMBEDDED)) {
+						EmbeddedRange e = new EmbeddedRange(
+							fDocument.get(region.getOffset(), region.getLength()),
+							new Position(region.getOffset(), region.getLength()));
+							
+						if (fIdToEmbeddedRangeMap.containsKey(e.getId())) {
+							if (fIdToEmbeddedRangeMap.get(e.getId()).isVisiable()) {
 								
-				AbstractDocument abstractDocument = (AbstractDocument) fDocument;
-				try {
-					Position[] positions = abstractDocument.getPositions(fPartitioningCategory);
-					trace("Class:" + positions[0].getClass().getName());
-					trace(Arrays.toString(positions));
-				} catch (BadPositionCategoryException e) {
-					e.printStackTrace();
+								/* Embedded region is duplicated by coping, set new id */
+								
+								e.setId(e.getId() + "!");
+								fIdToEmbeddedRangeMap.put(e.getId(), e);						
+							} else {
+								
+								/* Embedded region was cut before, and now become visible again.
+								 * Do nothing here
+								 */
+							}
+						} else {
+							
+							/* Create embedded region with new unique id */
+							
+							fIdToEmbeddedRangeMap.put(e.getId(), e);
+						}
+						
+						fEmbeddedRanges.add(e);
+						e.setIsVisiable(true);
+					}
+					offset += region.getLength();
+				}	
+			}
+			
+			private void onChangeOutsideEmbeddedRanges(DocumentEvent event) {
+				/* This and subsequent elements are not in the changed area, so they just move together for the same delta */
+				EmbeddedRange from = fEmbeddedRanges.higher(
+					EmbeddedRange.atOffset(event.getOffset() + event.getLength()));
+					
+				if (from != null) {
+					int delta = event.getText().length() - event.getLength();
+					moveEmbeddedRanges(from, delta);
 				}
 			}
 			
-			@Override
-			public void documentPartitioningChanged(IDocument document) {
-				trace("");
+			private void onChangeInsideEmbeddedRange(DocumentEvent event, ITypedRegion region) {
+				EmbeddedRange current = fEmbeddedRanges.floor(EmbeddedRange.atOffset(event.getOffset()));								
+				
+				Assert.isNotNull(current);
+				Assert.isTrue(current.getPosition().getOffset() == region.getOffset());
+				
+				current.updatePosition(region.getOffset(), region.getLength());
+							
+				EmbeddedRange from = fEmbeddedRanges.higher(
+					EmbeddedRange.atOffset(event.getOffset() + event.getLength()));
+				
+				if (from != null) {
+					int delta = event.getText().length() - event.getLength();
+					moveEmbeddedRanges(from, delta);
+				}
 			}
-		}		
-		fDocument.addDocumentPartitioningListener(new DocumentPartitioningListener());
-//		ITypedRegion getPartition(String partitioning, int offset, boolean preferOpenPartitions) throws BadLocationException, BadPartitioningException;
-//		ITypedRegion[] computePartitioning(String partitioning, int offset, int length, boolean includeZeroLengthPartitions) throws BadLocationException, BadPartitioningException;
+			
+
+			
+			private void moveEmbeddedRanges(EmbeddedRange from, int delta) {
+				if (from != null) {
+					NavigableSet<EmbeddedRange> tail = fEmbeddedRanges.tailSet(from, true);
+					Iterator<EmbeddedRange> it = tail.iterator();
+					while (it.hasNext()) {
+						EmbeddedRange e = it.next();
+						e.updatePosition(
+							e.getPosition().getOffset() + delta,
+							e.getPosition().getLength());
+					}
+				}
+			}
+			
+			@Override public void documentPartitioningChanged(IDocument document) {}
+			@Override public void documentAboutToBeChanged(DocumentEvent event) {}        
+		}
+		
+		DocumentListener listener = new DocumentListener();
+		fDocument.addDocumentPartitioningListener(listener);
+		fDocument.addDocumentListener(listener);
 	}
 	
+
+	
+
+		
     private static void trace(String message) {
     	System.out.println(Thread.currentThread().getStackTrace()[3].getMethodName() + "() " + message);
   	}

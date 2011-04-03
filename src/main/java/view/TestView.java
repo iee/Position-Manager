@@ -30,7 +30,7 @@ public class TestView extends ViewPart {
 	public void createPartControl(Composite parent) {
 		fTextViewer = new TextViewer(parent, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL);
 		fTextViewer.setDocument(fDocument);
-		fTextViewer.setInput(getViewSite());
+		//fTextViewer.setInput(getViewSite());
 		
 		fTreeViewer = new TreeViewer(parent);		
 		fTreeViewer.setLabelProvider(new LabelProvider());
