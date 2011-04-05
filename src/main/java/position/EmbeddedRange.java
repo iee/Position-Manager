@@ -24,7 +24,7 @@ public class EmbeddedRange {
 	
 	public EmbeddedRange(String initString, Position position) {
 		Scanner s = new Scanner(initString);
-		s.findInLine("/\\* (\\S+) (\\S+) \\*/");
+		s.findInLine("< (\\S+) (\\S+) >");
 		MatchResult result = s.match();
 		s.close();
 		
@@ -32,8 +32,8 @@ public class EmbeddedRange {
 			throw new RuntimeException();
 		}
 
-		fId = result.group(0);
-		fType = result.group(1);
+		fId = result.group(1);
+		fType = result.group(2);
 		fPosition = position;
 		fIsVisiable = false;
 	}

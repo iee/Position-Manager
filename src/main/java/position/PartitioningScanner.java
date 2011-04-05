@@ -22,7 +22,7 @@ public class PartitioningScanner extends RuleBasedPartitionScanner {
 	public PartitioningScanner() {
 		IPredicateRule[] rules = new IPredicateRule[1];
 		rules[0] = new MultiLineRule(IConfiguration.EMBEDDED_REGION_BEGINS,
-				IConfiguration.EMBEDDED_REGION_ENDS, EMBEDDED_TOKEN, '\\', true);
+				IConfiguration.EMBEDDED_REGION_ENDS, EMBEDDED_TOKEN, '\\', false);
 		setPredicateRules(rules);
 		setDefaultReturnToken(PLAINTEXT_TOKEN);
 	}

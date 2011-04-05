@@ -15,8 +15,8 @@ public interface IConfiguration {
 	public static final String CONENT_TYPE_PLAINTEXT = "__plaintext";
 	
 	/** Sequence the embedded partition begins with. */
-	public static final String EMBEDDED_REGION_BEGINS = "/*";
+	public static final String EMBEDDED_REGION_BEGINS = "<";
 
 	/** Sequence the embedded partition ends with. */
-	public static final String EMBEDDED_REGION_ENDS = "*/";
+	public static final String EMBEDDED_REGION_ENDS = ">";
 }
