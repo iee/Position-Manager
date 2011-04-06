@@ -17,7 +17,8 @@ public class TestView extends ViewPart {
 	public static final String ID = "Test.view";
 
 	private TextViewer fTextViewer;
-	private TreeViewer fTreeViewer; 
+	private TreeViewer fPadsTreeViewer;
+	private TreeViewer fCheckTreeViewer;
 	private IDocument fDocument;
 	private PositionManager fPositionManager;
 
@@ -32,15 +33,21 @@ public class TestView extends ViewPart {
 		fTextViewer.setDocument(fDocument);
 		//fTextViewer.setInput(getViewSite());
 		
-		fTreeViewer = new TreeViewer(parent);		
-		fTreeViewer.setLabelProvider(new LabelProvider());
-		fTreeViewer.setContentProvider(new TreeViewerContentProvider());
-		fTreeViewer.setInput(fPositionManager);
+		fPadsTreeViewer = new TreeViewer(parent);		
+		fPadsTreeViewer.setLabelProvider(new LabelProvider());
+		fPadsTreeViewer.setContentProvider(new TreeViewerContentProvider());
+		fPadsTreeViewer.setInput(fPositionManager);
+		
+		fCheckTreeViewer = new TreeViewer(parent);		
+		fCheckTreeViewer.setLabelProvider(new LabelProvider());
+		fCheckTreeViewer.setContentProvider(new TreeViewerContentProviderCheck());
+		fCheckTreeViewer.setInput(fPositionManager);
 		
 		fPositionManager.addStateChangedListener(new IStateChangedListener() {
 			@Override
 			public void stateChanged(StateChangedEvent event) {
-				fTreeViewer.refresh();				
+				fPadsTreeViewer.refresh();	
+				fCheckTreeViewer.refresh();
 			}
 		});
 	}

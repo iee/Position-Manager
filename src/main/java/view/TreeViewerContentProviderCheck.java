@@ -5,11 +5,11 @@ import org.eclipse.jface.viewers.Viewer;
 
 import position.PositionManager;
 
-public class TreeViewerContentProvider implements ITreeContentProvider {
+public class TreeViewerContentProviderCheck implements ITreeContentProvider {
 
 	@Override
 	public Object[] getElements(Object inputElement) {
-		return ((PositionManager) inputElement).getPads();
+		return ((PositionManager) inputElement).getElementsCheck();
 	}
 	
 	@Override
@@ -34,4 +34,5 @@ public class TreeViewerContentProvider implements ITreeContentProvider {
 	@Override
 	public void inputChanged(Viewer viewer, Object oldInput, Object newInput) {
 	}	
+
 }
