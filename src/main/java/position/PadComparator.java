@@ -11,7 +11,7 @@ public class PadComparator implements Comparator<Pad> {
 		return offset0.compareTo(offset1);
 	}
 	
-	public boolean isAscending(Pad arg0, Pad arg1) {
+	public boolean isNotDescending(Pad arg0, Pad arg1) {
 		return compare(arg0, arg1) <= 0;
 	}
 }

@@ -84,55 +84,71 @@ public class PositionManager extends EventManager {
         class DocumentListener implements
         IDocumentListener, IDocumentPartitioningListener, IDocumentPartitioningListenerExtension2
         {            
-            private boolean fIsPartitionChanged;
-            IRegion changedRegion;
+            private IRegion fChangedPartitioningRegion;
             
-            DocumentListener() {
-                fIsPartitionChanged = false;
+            public DocumentListener() {
+            	fChangedPartitioningRegion = null;
             }
             
             @Override
             public void documentPartitioningChanged(DocumentPartitioningChangedEvent event) {
-                trace(event.toString());
-                IRegion changedRegion = event.getChangedRegion(IConfiguration.PARTITIONING_ID);
-            	if (changedRegion != null) {
-            		trace(changedRegion.toString());
-                    fIsPartitionChanged = true;
+                fChangedPartitioningRegion = event.getChangedRegion(IConfiguration.PARTITIONING_ID);
+            	if (fChangedPartitioningRegion != null) {
+            		trace(fChangedPartitioningRegion.toString());
                 }
             }
             
             @Override
             public void documentChanged(DocumentEvent event) {
-                
-            	final int unmodifiedOffset = event.getOffset() + event.getLength();
-                final int moveDelta = event.getText().length() - event.getLength();
-                
-                /* Positive delta means moving unmodified pads forward.
-                 * We have to perform this action before any other modifications.
+            	
+            	/* All pads which placed after 'unmodifiedOffset'
+            	 * are considered to be just moved without any other modifications.
+            	 * 
+            	 * It's calculated according following equation
+            	 * 'unmodified offset' = max('end of partitioning changed area', 'end of document changed area') - 'moving_delta' 
+            	 */
+            	
+            	int unmodifiedOffset;
+            	final int movingDelta = event.getText().length() - event.getLength();
+            	
+            	if (fChangedPartitioningRegion != null) {
+            		unmodifiedOffset = Math.max(
+            			event.getOffset() + event.getText().length(),
+            			fChangedPartitioningRegion.getOffset() + fChangedPartitioningRegion.getLength());
+            		unmodifiedOffset -= movingDelta;
+            	} else {
+            		unmodifiedOffset = event.getOffset() + event.getLength();
+            	}
+                                      
+                /* Positive delta means that unmodified pads move forward.
+                 * We have to perform this action before any other modifications to avoid collisions.
                  */
-           
-                if (moveDelta > 0) {
-                	moveUnmodifiedPads(unmodifiedOffset, moveDelta);
+          	
+                if (movingDelta > 0) {
+                	moveUnmodifiedPads(unmodifiedOffset, movingDelta);
                 }
-                            	
+
             	try {
-                    if (fIsPartitionChanged) {
+                    if (fChangedPartitioningRegion != null) {
                         
                         /* Case 1:
-                         * Changed text area contains some embedded regions
-                         * (occurred when document partitioning changes)
+                         * Document partitioning is changed, so updating the set of the pads
                          */                    
-                        onPartitioningChanged(event);
+                        onPartitioningChanged(event, unmodifiedOffset);
                         
-                    } else {      
+                    } else {
                     	Pad current = getPadContainingOffset(event.getOffset());
                         if (current != null) {
                             
                         	/* Case 2:
-                             * Changed text area is inside pad area
+                             * Changed text area is inside current pad's area, updating it
                              */ 
                         	onChangesInsidePad(current, event);
                         }
+                        
+                        /* Case 3:
+                         * No pad modified, do nothing.
+                         */
                     }
                 } catch (BadLocationException e) {
                     // TODO Auto-generated catch block
@@ -146,62 +162,50 @@ public class PositionManager extends EventManager {
                 }
                 
                 /* If delta is negative, we move unmodified pads backward,
-                 * but do it after any other modifications were done.
+                 * but after any other modifications are done.
                  */
                 
-                if (moveDelta < 0) {
-                	moveUnmodifiedPads(unmodifiedOffset, moveDelta);
+                if (movingDelta < 0) {
+                	moveUnmodifiedPads(unmodifiedOffset, movingDelta);
                 }
                 
-                fIsPartitionChanged = false;
+                fChangedPartitioningRegion = null;
                 fireStateChangedEvent(new StateChangedEvent());
             }
             
-            private void onPartitioningChanged(DocumentEvent event) throws BadLocationException, BadPartitioningException {
-                trace(event.toString());
-                /* If changed area contains some embedded regions (that means that partitioning change event has occurred),
-                 * we have to update embedded ranges set and id mapping. All elements between 'first' and 'last'
-                 * were removed, new elements can possibly be created.
-                 */
-                
-                Pad from = getPadContainingOffset(event.getOffset());
-                if (from == null) {
-                    from = fPads.ceiling(Pad.atOffset(event.getOffset()));
-                }
+            private void onPartitioningChanged(DocumentEvent event, int unmodifiedOffset) throws BadLocationException, BadPartitioningException {
 
-                Pad	to = fPads.lower(Pad.atOffset(event.getOffset() + event.getLength()));
+            	/* Remove all elements within changed area */
+            	
+                int beginRegionOffset = Math.min(event.getOffset(), fChangedPartitioningRegion.getOffset());
+                
+                Pad from = fPads.ceiling(Pad.atOffset(beginRegionOffset));
+                Pad	to = fPads.lower(Pad.atOffset(unmodifiedOffset));
                                               
-                if (from != null && to != null && fPadComparator.isAscending(from, to)) {
-                    
-                	/* Clear set from removed pads */
-                	
-                	NavigableSet<Pad> forRemoveSet = fPads.subSet(from, true, to, true);                    
-                	if (forRemoveSet != null) {
-                		while (forRemoveSet.pollFirst() != null);
+                if (from != null && to != null && fPadComparator.isNotDescending(from, to)) {
+                	NavigableSet<Pad> removeSet = fPads.subSet(from, true, to, true);                    
+                	if (removeSet != null) {
+                		while (removeSet.pollFirst() != null);
                 	}
                 }
                 
-                /* Scan text area for new elements */
+                /* Scanning for new pads */
                 
-                int offset = event.getOffset();
-                while (offset < event.getOffset() + event.getText().length()) {
+                int offset = beginRegionOffset;
+                while (offset < fChangedPartitioningRegion.getOffset() + fChangedPartitioningRegion.getLength()) {
                     ITypedRegion region = ((IDocumentExtension3) fDocument)
                         .getPartition(IConfiguration.PARTITIONING_ID, offset, false);
                     
-                    if (region.getType().equals(IConfiguration.CONTENT_TYPE_EMBEDDED)) {
-                        
-                        /* Embedded range is found */
-                        
-                        Pad e = new Pad(new Position(region.getOffset(), region.getLength()));
-                                                                        
+                    if (region.getType().equals(IConfiguration.CONTENT_TYPE_EMBEDDED)) {                                              
+                        Pad e = new Pad(new Position(region.getOffset(), region.getLength()));                                                                        
                         fPads.add(e);
+                        trace("added");
                     }
                     offset += region.getLength();
                 }
             }
             
             private void onChangesInsidePad(Pad pad, DocumentEvent event) throws BadLocationException, BadPartitioningException {
-                trace(event.toString() + " / " + pad.toString());
             	ITypedRegion region = ((IDocumentExtension3) fDocument)
                 	.getPartition(IConfiguration.PARTITIONING_ID, event.getOffset(), false);
             	
@@ -223,9 +227,7 @@ public class PositionManager extends EventManager {
                 }
             }
             
-            @Override
-            public void documentAboutToBeChanged(DocumentEvent event) {}
-            
+            @Override public void documentAboutToBeChanged(DocumentEvent event) {}
             @Override public void documentPartitioningChanged(IDocument document) {}
         }
         
