@@ -1,4 +1,4 @@
-package position;
+package container;
 
 
 import org.eclipse.jface.text.rules.IPredicateRule;

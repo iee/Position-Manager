@@ -9,9 +9,10 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.part.ViewPart;
 
-import position.IStateChangedListener;
-import position.PositionManager;
-import position.StateChangedEvent;
+import container.ContainerManager;
+import container.IStateChangedListener;
+import container.StateChangedEvent;
+
 
 public class TestView extends ViewPart {
 	public static final String ID = "Test.view";
@@ -20,11 +21,11 @@ public class TestView extends ViewPart {
 	private TreeViewer fPadsTreeViewer;
 	private TreeViewer fCheckTreeViewer;
 	private IDocument fDocument;
-	private PositionManager fPositionManager;
+	private ContainerManager fPositionManager;
 
 	public TestView() {
 		fDocument = new Document();
-		fPositionManager = new PositionManager(fDocument);
+		fPositionManager = new ContainerManager(fDocument);
 	}
 
 	@Override

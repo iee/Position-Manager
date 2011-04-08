@@ -5,9 +5,11 @@ import junit.framework.TestCase;
 import org.eclipse.jface.text.Position;
 import org.junit.Test;
 
+import container.ContainerManager;
+
 public class PositionManagerTest extends TestCase {
 
-	PositionManager fPositionManager;
+	ContainerManager fPositionManager;
 
 	@Override
 	protected void setUp() throws Exception {

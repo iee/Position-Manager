@@ -3,13 +3,14 @@ package view;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.Viewer;
 
-import position.PositionManager;
+import container.ContainerManager;
+
 
 public class TreeViewerContentProviderCheck implements ITreeContentProvider {
 
 	@Override
 	public Object[] getElements(Object inputElement) {
-		return ((PositionManager) inputElement).getElementsCheck();
+		return ((ContainerManager) inputElement).getElementsCheck();
 	}
 	
 	@Override

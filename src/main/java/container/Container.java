@@ -1,15 +1,15 @@
-package position;
+package container;
 
 import org.eclipse.jface.text.Position;
 
-public class Pad {
+public class Container {
 	private Position fPosition;
 	
-	public static Pad atOffset(int offset) {
-		return new Pad(new Position(offset, 0));
+	public static Container atOffset(int offset) {
+		return new Container(new Position(offset, 0));
 	}
 			
-	public Pad(Position position) {
+	public Container(Position position) {
 		fPosition = position;
 	}
 			
