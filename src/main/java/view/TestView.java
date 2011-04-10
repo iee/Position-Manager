@@ -10,8 +10,11 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.part.ViewPart;
 
 import container.ContainerManager;
-import container.IStateChangedListener;
-import container.StateChangedEvent;
+import container.EmbeddedRangeSetChangedEvent;
+import container.IContainerManagerListener;
+
+
+
 
 
 public class TestView extends ViewPart {
@@ -21,11 +24,11 @@ public class TestView extends ViewPart {
 	private TreeViewer fPadsTreeViewer;
 	private TreeViewer fCheckTreeViewer;
 	private IDocument fDocument;
-	private ContainerManager fPositionManager;
+	private ContainerManager fContainerManager;
 
 	public TestView() {
 		fDocument = new Document();
-		fPositionManager = new ContainerManager(fDocument);
+		fContainerManager = new ContainerManager(fDocument);
 	}
 
 	@Override
@@ -37,16 +40,16 @@ public class TestView extends ViewPart {
 		fPadsTreeViewer = new TreeViewer(parent);		
 		fPadsTreeViewer.setLabelProvider(new LabelProvider());
 		fPadsTreeViewer.setContentProvider(new TreeViewerContentProvider());
-		fPadsTreeViewer.setInput(fPositionManager);
+		fPadsTreeViewer.setInput(fContainerManager);
 		
 		fCheckTreeViewer = new TreeViewer(parent);		
 		fCheckTreeViewer.setLabelProvider(new LabelProvider());
 		fCheckTreeViewer.setContentProvider(new TreeViewerContentProviderCheck());
-		fCheckTreeViewer.setInput(fPositionManager);
+		fCheckTreeViewer.setInput(fContainerManager);
 		
-		fPositionManager.addStateChangedListener(new IStateChangedListener() {
+		fContainerManager.addStateChangedListener(new IContainerManagerListener() {
 			@Override
-			public void stateChanged(StateChangedEvent event) {
+			public void embeddedRangeSetChanged(EmbeddedRangeSetChangedEvent event) {
 				fPadsTreeViewer.refresh();	
 				fCheckTreeViewer.refresh();
 			}
