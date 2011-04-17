@@ -34,21 +34,27 @@ public class ContainerFormat implements IContainerFormat {
 	}
 
 	@Override
-	public void setDocument(IDocument document) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
 	public void setEditorText(String text) {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public void setPosition(Position position) {
+	public void connect(IDocument document, Position position) {
 		// TODO Auto-generated method stub
+		
+	}
 
+	@Override
+	public void generate() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void parse() {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

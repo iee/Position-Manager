@@ -8,6 +8,7 @@ import org.eclipse.core.commands.common.EventManager;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.BadPartitioningException;
+import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.DocumentPartitioningChangedEvent;
 import org.eclipse.jface.text.IDocument;
@@ -20,6 +21,9 @@ import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.ITypedRegion;
 import org.eclipse.jface.text.Position;
 import org.eclipse.jface.text.rules.FastPartitioner;
+import org.eclipse.jface.text.source.projection.ProjectionAnnotation;
+import org.eclipse.jface.text.source.projection.ProjectionAnnotationModel;
+import org.eclipse.jface.text.source.projection.ProjectionViewer;
 
 
 
@@ -27,17 +31,17 @@ public class ContainerManager extends EventManager {
 
     private final IDocument fDocument;
     private final IDocumentPartitioner fDocumentPartitioner;
+    private ProjectionAnnotationModel fProjectionAnnotationModel;
     
     private final NavigableSet<Container> fContainers;
 
     
     /* Public interface */
 
-
-
-    public ContainerManager(IDocument document) {
+    public ContainerManager(IDocument document, ProjectionAnnotationModel annotationModel) { 
     	fContainers = new TreeSet<Container>();
         fDocument = document;
+        fProjectionAnnotationModel = annotationModel;
 
         fDocumentPartitioner = new FastPartitioner(
             new PartitioningScanner(),
@@ -96,6 +100,9 @@ public class ContainerManager extends EventManager {
             @Override
             public void documentPartitioningChanged(DocumentPartitioningChangedEvent event) {
                 fChangedPartitioningRegion = event.getChangedRegion(IConfiguration.PARTITIONING_ID);
+                fProjectionAnnotationModel.addAnnotation(new ProjectionAnnotation(), 
+                										 new Position(fChangedPartitioningRegion.getOffset(), 
+                												      fChangedPartitioningRegion.getLength()));
             }
 
             @Override
@@ -255,4 +262,9 @@ public class ContainerManager extends EventManager {
             ((IContainerManagerListener) listeners[i]).containerRemoved(event);
         }
     }
+
+	public Object[] getElementsCheck() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
