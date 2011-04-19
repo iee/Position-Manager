@@ -1,22 +1,23 @@
 package view;
 
+import org.eclipse.jdt.internal.ui.javaeditor.CompilationUnitEditor;
 import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.jface.text.source.IVerticalRuler;
 import org.eclipse.jface.text.source.projection.ProjectionAnnotationModel;
 import org.eclipse.jface.text.source.projection.ProjectionSupport;
 import org.eclipse.jface.text.source.projection.ProjectionViewer;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.ui.editors.text.TextEditor;
 
 import container.ContainerManager;
 
-public class TestView extends TextEditor {
+public class TestView extends CompilationUnitEditor {
 
 	public static final String ID = "Test.view";
 
 	private ProjectionViewer fProjectionViewer;
 	private ProjectionAnnotationModel fProjectionAnnotationModel;
     private ProjectionSupport fProjectionSupport;
+    private ContainerManager fContainerManager;
 
     public TestView() {
     	super();
@@ -35,7 +36,7 @@ public class TestView extends TextEditor {
 
 		fProjectionAnnotationModel = viewer.getProjectionAnnotationModel();
 
-    	new ContainerManager(viewer.getDocument(), fProjectionAnnotationModel);
+		fContainerManager = new ContainerManager(viewer.getDocument(), fProjectionAnnotationModel);
 
 //		fPadsTreeViewer = new TreeViewer(parent);
 //		fPadsTreeViewer.setLabelProvider(new LabelProvider());
