@@ -23,247 +23,275 @@ import org.eclipse.jface.text.rules.FastPartitioner;
 import org.eclipse.jface.text.source.projection.ProjectionAnnotation;
 import org.eclipse.jface.text.source.projection.ProjectionAnnotationModel;
 
-
-
 public class ContainerManager extends EventManager {
 
-    private final IDocument fDocument;
-    private final IDocumentPartitioner fDocumentPartitioner;
-    private final ProjectionAnnotationModel fProjectionAnnotationModel;
+	private final IDocument fDocument;
+	private final IDocumentPartitioner fDocumentPartitioner;
+	private final ProjectionAnnotationModel fProjectionAnnotationModel;
 
-    private final NavigableSet<Container> fContainers;
+	private final NavigableSet<Container> fContainers;
 
+	/* Public interface */
 
-    /* Public interface */
+	public ContainerManager(IDocument document,
+			ProjectionAnnotationModel annotationModel) {
+		fContainers = new TreeSet<Container>();
+		fDocument = document;
+		fProjectionAnnotationModel = annotationModel;
 
-    public ContainerManager(IDocument document, ProjectionAnnotationModel annotationModel) {
-    	fContainers = new TreeSet<Container>();
-        fDocument = document;
-        fProjectionAnnotationModel = annotationModel;
+		fDocumentPartitioner = new FastPartitioner(new PartitioningScanner(),
+				new String[] { IConfiguration.CONTENT_TYPE_EMBEDDED });
 
-        fDocumentPartitioner = new FastPartitioner(
-            new PartitioningScanner(),
-            new String[] { IConfiguration.CONTENT_TYPE_EMBEDDED });
+		((IDocumentExtension3) fDocument).setDocumentPartitioner(
+				IConfiguration.PARTITIONING_ID, fDocumentPartitioner);
 
-        ((IDocumentExtension3) fDocument).setDocumentPartitioner(
-            IConfiguration.PARTITIONING_ID, fDocumentPartitioner);
+		initDocumentListener();
+		fDocumentPartitioner.connect(fDocument);
+	}
 
-        initDocumentListener();
-        fDocumentPartitioner.connect(fDocument);
-    }
+	public Object[] getContainers() {
+		return fContainers.toArray();
+	}
 
-    public Object[] getContainers() {
-        return fContainers.toArray();
-    }
+	public void createContainer(Position position, String id) {
+		IContainer container = new Container(id, new Position(position
+				.getOffset(), position.getLength()), fDocument);
+	}
 
-    public void createContainer(Position position, String id) {
-		IContainer container = new Container(
-			id, new Position(position.getOffset(), position.getLength()), fDocument);
-    }
+	/* Functions for observers */
 
+	public void addContainerManagerListener(IContainerManagerListener listener) {
+		Assert.isNotNull(listener);
+		addListenerObject(listener);
+	}
 
-    /* Functions for observers */
+	public void removeContainerManagerListener(
+			IContainerManagerListener listener) {
+		Assert.isNotNull(listener);
+		removeListenerObject(listener);
+	}
 
-    public void addContainerManagerListener(IContainerManagerListener listener) {
-        Assert.isNotNull(listener);
-        addListenerObject(listener);
-    }
+	/* Internal functions */
 
-    public void removeContainerManagerListener(IContainerManagerListener listener) {
-        Assert.isNotNull(listener);
-        removeListenerObject(listener);
-    }
+	protected Container getContainerHavingOffset(int offset) {
+		Container c = fContainers.lower(Container.atOffset(offset));
+		if (c != null && c.getPosition().includes(offset)) {
+			return c;
+		}
+		return null;
+	}
 
+	protected void initDocumentListener() {
+		class DocumentListener implements IDocumentListener,
+				IDocumentPartitioningListener,
+				IDocumentPartitioningListenerExtension2 {
+			private IRegion fChangedPartitioningRegion;
 
-    /* Internal functions */
+			public DocumentListener() {
+				fChangedPartitioningRegion = null;
+			}
 
-    protected Container getContainerHavingOffset(int offset) {
-    	Container c = fContainers.lower(Container.atOffset(offset));
-    	if (c != null && c.getPosition().includes(offset)) {
-    		return c;
-    	}
-    	return null;
-    }
+			@Override
+			public void documentPartitioningChanged(
+					DocumentPartitioningChangedEvent event) {
+				fChangedPartitioningRegion = event
+						.getChangedRegion(IConfiguration.PARTITIONING_ID);
 
-    protected void initDocumentListener() {
-        class DocumentListener implements
-        IDocumentListener, IDocumentPartitioningListener, IDocumentPartitioningListenerExtension2
-        {
-            private IRegion fChangedPartitioningRegion;
+				if (fChangedPartitioningRegion.getLength() != 0) {
+					System.out.println(fChangedPartitioningRegion);
+					fProjectionAnnotationModel.addAnnotation(
+							new ProjectionAnnotation(), new Position(
+									fChangedPartitioningRegion.getOffset(),
+									fChangedPartitioningRegion.getLength()));
+				}
+			}
 
-            public DocumentListener() {
-            	fChangedPartitioningRegion = null;
-            }
+			@Override
+			public void documentChanged(DocumentEvent event) {
 
-            @Override
-            public void documentPartitioningChanged(DocumentPartitioningChangedEvent event) {
-                fChangedPartitioningRegion = event.getChangedRegion(IConfiguration.PARTITIONING_ID);
+				/*
+				 * All DocumentRanges which placed after 'unmodifiedOffset' are
+				 * considered to be just moved without any other modifications.
+				 * 
+				 * It's calculated according following equation 'unmodified
+				 * offset' = max('end of partitioning changed area', 'end of
+				 * document changed area') - 'moving_delta'
+				 */
 
-                if (fChangedPartitioningRegion.getLength() != 0) {
-                	System.out.println(fChangedPartitioningRegion);
-	                fProjectionAnnotationModel.addAnnotation(new ProjectionAnnotation(),
-	                										 new Position(fChangedPartitioningRegion.getOffset(),
-	                												      fChangedPartitioningRegion.getLength()));
-                }
-            }
+				int unmodifiedOffset;
+				final int movingDelta = event.getText().length()
+						- event.getLength();
 
-            @Override
-            public void documentChanged(DocumentEvent event) {
+				if (fChangedPartitioningRegion != null) {
+					unmodifiedOffset = Math.max(event.getOffset()
+							+ event.getText().length(),
+							fChangedPartitioningRegion.getOffset()
+									+ fChangedPartitioningRegion.getLength());
+					unmodifiedOffset -= movingDelta;
+				} else {
+					unmodifiedOffset = event.getOffset() + event.getLength();
+				}
 
-            	/* All DocumentRanges which placed after 'unmodifiedOffset'
-            	 * are considered to be just moved without any other modifications.
-            	 *
-            	 * It's calculated according following equation
-            	 * 'unmodified offset' = max('end of partitioning changed area', 'end of document changed area') - 'moving_delta'
-            	 */
+				/*
+				 * Positive delta means that unmodified DocumentRanges move
+				 * forward. We have to perform this action before any other
+				 * modifications to avoid collisions.
+				 */
 
-            	int unmodifiedOffset;
-            	final int movingDelta = event.getText().length() - event.getLength();
+				if (movingDelta > 0) {
+					moveUnmodifiedContainers(unmodifiedOffset, movingDelta);
+				}
 
-            	if (fChangedPartitioningRegion != null) {
-            		unmodifiedOffset = Math.max(
-            			event.getOffset() + event.getText().length(),
-            			fChangedPartitioningRegion.getOffset() + fChangedPartitioningRegion.getLength());
-            		unmodifiedOffset -= movingDelta;
-            	} else {
-            		unmodifiedOffset = event.getOffset() + event.getLength();
-            	}
+				try {
+					if (fChangedPartitioningRegion != null) {
 
-                /* Positive delta means that unmodified DocumentRanges move forward.
-                 * We have to perform this action before any other modifications to avoid collisions.
-                 */
+						/*
+						 * Case 1: Document partitioning is changed, so updating
+						 * the set of the DocumentRanges
+						 */
+						onPartitioningChanged(event, unmodifiedOffset);
 
-                if (movingDelta > 0) {
-                	moveUnmodifiedContainers(unmodifiedOffset, movingDelta);
-                }
+					} else {
+						Container current = getContainerHavingOffset(event
+								.getOffset());
+						if (current != null) {
 
-            	try {
-                    if (fChangedPartitioningRegion != null) {
+							/*
+							 * Case 2: Changed text area is inside current
+							 * DocumentRange's area, updating it
+							 */
+							onChangesInsideConteiner(current, event);
+						}
 
-                        /* Case 1:
-                         * Document partitioning is changed, so updating the set of the DocumentRanges
-                         */
-                        onPartitioningChanged(event, unmodifiedOffset);
+						/*
+						 * Case 3: No DocumentRange modified, do nothing.
+						 */
+					}
+				} catch (BadLocationException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (BadPartitioningException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (RuntimeException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 
-                    } else {
-                    	Container current = getContainerHavingOffset(event.getOffset());
-                        if (current != null) {
+				/*
+				 * If delta is negative, we move unmodified DocumentRanges
+				 * backward, but after any other modifications are done.
+				 */
 
-                        	/* Case 2:
-                             * Changed text area is inside current DocumentRange's area, updating it
-                             */
-                        	onChangesInsideConteiner(current, event);
-                        }
+				if (movingDelta < 0) {
+					moveUnmodifiedContainers(unmodifiedOffset, movingDelta);
+				}
 
-                        /* Case 3:
-                         * No DocumentRange modified, do nothing.
-                         */
-                    }
-                } catch (BadLocationException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                } catch (BadPartitioningException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                } catch (RuntimeException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
+				fChangedPartitioningRegion = null;
+			}
 
-                /* If delta is negative, we move unmodified DocumentRanges backward,
-                 * but after any other modifications are done.
-                 */
+			private void onPartitioningChanged(DocumentEvent event,
+					int unmodifiedOffset) throws BadLocationException,
+					BadPartitioningException {
 
-                if (movingDelta < 0) {
-                	moveUnmodifiedContainers(unmodifiedOffset, movingDelta);
-                }
+				/* Remove all elements within changed area */
 
-                fChangedPartitioningRegion = null;
-            }
+				int beginRegionOffset = Math.min(event.getOffset(),
+						fChangedPartitioningRegion.getOffset());
 
-            private void onPartitioningChanged(DocumentEvent event, int unmodifiedOffset) throws BadLocationException, BadPartitioningException {
+				Container from = fContainers.ceiling(Container
+						.atOffset(beginRegionOffset));
+				Container to = fContainers.lower(Container
+						.atOffset(unmodifiedOffset));
 
-            	/* Remove all elements within changed area */
+				if (from != null && to != null && from.compareTo(to) <= 0) {
+					NavigableSet<Container> removeSet = fContainers.subSet(
+							from, true, to, true);
+					if (removeSet != null) {
+						Container c;
+						while ((c = removeSet.pollFirst()) != null) {
+							fireContainerRemoved(new ContainerManagerEvent(c));
+						}
+					}
+				}
 
-                int beginRegionOffset = Math.min(event.getOffset(), fChangedPartitioningRegion.getOffset());
+				/* Scanning for new DocumentRanges */
 
-                Container from = fContainers.ceiling(Container.atOffset(beginRegionOffset));
-                Container to = fContainers.lower(Container.atOffset(unmodifiedOffset));
+				int offset = beginRegionOffset;
+				while (offset < fChangedPartitioningRegion.getOffset()
+						+ fChangedPartitioningRegion.getLength()) {
+					ITypedRegion region = ((IDocumentExtension3) fDocument)
+							.getPartition(IConfiguration.PARTITIONING_ID,
+									offset, false);
 
-                if (from != null && to != null && from.compareTo(to) <= 0) {
-                	NavigableSet<Container> removeSet = fContainers.subSet(from, true, to, true);
-                	if (removeSet != null) {
-                		Container c;
-                		while ((c = removeSet.pollFirst()) != null) {
-                			fireContainerRemoved(new ContainerManagerEvent(c));
-                		}
-                	}
-                }
+					if (region.getType().equals(
+							IConfiguration.CONTENT_TYPE_EMBEDDED)) {
 
-                /* Scanning for new DocumentRanges */
+						Container c = new Container(new Position(region
+								.getOffset(), region.getLength()), fDocument);
 
-                int offset = beginRegionOffset;
-                while (offset < fChangedPartitioningRegion.getOffset() + fChangedPartitioningRegion.getLength()) {
-                    ITypedRegion region = ((IDocumentExtension3) fDocument)
-                        .getPartition(IConfiguration.PARTITIONING_ID, offset, false);
+						fContainers.add(c);
+						fireContainerCreated(new ContainerManagerEvent(c));
+					}
+					offset += region.getLength();
+				}
+			}
 
-                    if (region.getType().equals(IConfiguration.CONTENT_TYPE_EMBEDDED)) {
+			private void onChangesInsideConteiner(Container container,
+					DocumentEvent event) throws BadLocationException,
+					BadPartitioningException {
+				ITypedRegion region = ((IDocumentExtension3) fDocument)
+						.getPartition(IConfiguration.PARTITIONING_ID, event
+								.getOffset(), false);
 
-                    	Container c = new Container(
-                        	new Position(region.getOffset(), region.getLength()),
-                        	fDocument);
+				Assert.isTrue(container.getPosition().getOffset() == region
+						.getOffset());
 
-                        fContainers.add(c);
-                        fireContainerCreated(new ContainerManagerEvent(c));
-                    }
-                    offset += region.getLength();
-                }
-            }
+				container
+						.updatePosition(region.getOffset(), region.getLength());
+			}
 
-            private void onChangesInsideConteiner(Container container, DocumentEvent event) throws BadLocationException, BadPartitioningException {
-            	ITypedRegion region = ((IDocumentExtension3) fDocument)
-                	.getPartition(IConfiguration.PARTITIONING_ID, event.getOffset(), false);
+			private void moveUnmodifiedContainers(int offset, int delta) {
+				Container from = fContainers
+						.ceiling(Container.atOffset(offset));
+				if (from == null)
+					return;
 
-                Assert.isTrue(container.getPosition().getOffset() == region.getOffset());
+				NavigableSet<Container> tail = fContainers.tailSet(from, true);
+				Iterator<Container> it = tail.iterator();
+				while (it.hasNext()) {
+					Container c = it.next();
+					c.movePosition(delta);
+				}
+			}
 
-                container.updatePosition(region.getOffset(), region.getLength());
-            }
+			@Override
+			public void documentAboutToBeChanged(DocumentEvent event) {
+			}
 
-            private void moveUnmodifiedContainers(int offset, int delta) {
-            	Container from = fContainers.ceiling(Container.atOffset(offset));
-            	if (from == null)
-                    return;
+			@Override
+			public void documentPartitioningChanged(IDocument document) {
+			}
+		}
 
-                NavigableSet<Container> tail = fContainers.tailSet(from, true);
-                Iterator<Container> it = tail.iterator();
-                while (it.hasNext()) {
-                    Container c = it.next();
-                    c.movePosition(delta);
-                }
-            }
+		DocumentListener listener = new DocumentListener();
+		fDocument.addDocumentPartitioningListener(listener);
+		fDocument.addDocumentListener(listener);
+	}
 
-            @Override public void documentAboutToBeChanged(DocumentEvent event) {}
-            @Override public void documentPartitioningChanged(IDocument document) {}
-        }
+	protected void fireContainerCreated(ContainerManagerEvent event) {
+		Object[] listeners = getListeners();
+		for (int i = 0; i < listeners.length; i++) {
+			((IContainerManagerListener) listeners[i]).containerCreated(event);
+		}
+	}
 
-        DocumentListener listener = new DocumentListener();
-        fDocument.addDocumentPartitioningListener(listener);
-        fDocument.addDocumentListener(listener);
-    }
-
-    protected void fireContainerCreated(ContainerManagerEvent event) {
-        Object[] listeners = getListeners();
-        for (int i = 0; i < listeners.length; i++) {
-            ((IContainerManagerListener) listeners[i]).containerCreated(event);
-        }
-    }
-
-    protected void fireContainerRemoved(ContainerManagerEvent event) {
-        Object[] listeners = getListeners();
-        for (int i = 0; i < listeners.length; i++) {
-            ((IContainerManagerListener) listeners[i]).containerRemoved(event);
-        }
-    }
+	protected void fireContainerRemoved(ContainerManagerEvent event) {
+		Object[] listeners = getListeners();
+		for (int i = 0; i < listeners.length; i++) {
+			((IContainerManagerListener) listeners[i]).containerRemoved(event);
+		}
+	}
 
 	public Object[] getElementsCheck() {
 		// TODO Auto-generated method stub

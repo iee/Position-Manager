@@ -27,7 +27,7 @@
             default="true"
             extensions="java"
             id="Test.view"
-            name="name">
+            name="Test editor">
       </editor>
    </extension>
 
