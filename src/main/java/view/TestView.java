@@ -9,9 +9,11 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.part.ViewPart;
 
+import container.Container;
 import container.ContainerManager;
 import container.IStateChangedListener;
 import container.StateChangedEvent;
+import container.StyledTextManager;
 
 public class TestView extends ViewPart {
 	public static final String ID = "Test.view";
@@ -31,8 +33,10 @@ public class TestView extends ViewPart {
 	public void createPartControl(Composite parent) {
 		fTextViewer = new TextViewer(parent, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL);
 		fTextViewer.setDocument(fDocument);
-		//fTextViewer.setInput(getViewSite());
 		
+		Container.setStyledTextManager(new StyledTextManager(fTextViewer.getTextWidget()));
+		
+		//fTextViewer.setInput(getViewSite());
 		fContainerTreeViewer = new TreeViewer(parent);		
 		fContainerTreeViewer.setLabelProvider(new LabelProvider());
 		fContainerTreeViewer.setContentProvider(new TreeViewerContentProvider());

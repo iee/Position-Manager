@@ -7,12 +7,12 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.widgets.Composite;
 
-class StyledTextManager {
+public class StyledTextManager {
 	
 	private StyledText fStyledText;
 	private Map<String, Composite> fID2CompositeMap = new TreeMap<String, Composite>();
 	
-	StyledTextManager(StyledText styledText) {
+	public StyledTextManager(StyledText styledText) {
 		fStyledText = styledText;
 	}
 	
@@ -24,6 +24,7 @@ class StyledTextManager {
 	
 	void ReleaseComposite(String fContainerID) {
 		Composite composite = fID2CompositeMap.get(fContainerID);
+		
 		composite.dispose();
 		fID2CompositeMap.remove(fContainerID);
 	}

@@ -1,7 +1,9 @@
 package container;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.NavigableSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.eclipse.core.commands.common.EventManager;
@@ -29,6 +31,8 @@ public class ContainerManager extends EventManager {
 
     private final NavigableSet<Container> fContainers;
     private final ContainerComparator fContainerComparator;
+    
+    private final Map<String, Container> fID2ContainerMap;
 
     /* Public interface */
 
@@ -36,10 +40,10 @@ public class ContainerManager extends EventManager {
         return fContainers.toArray();
     }
     
-    public void RequestContainerAllocation(String containerID, Position at) {
+    public void RequestContainerAllocation(Position at) {
     	String containerEmbeddedRegion = 
     			IConfiguration.EMBEDDED_REGION_BEGINS +
-				containerID +
+				allocateContainerID() +
 				IConfiguration.EMBEDDED_REGION_ENDS;		
     	try {
 			fDocument.replace(at.getOffset(), 0, containerEmbeddedRegion);
@@ -112,6 +116,7 @@ public class ContainerManager extends EventManager {
     public ContainerManager(IDocument document) {
         fContainerComparator = new ContainerComparator();
     	fContainers = new TreeSet<Container>(fContainerComparator);
+    	fID2ContainerMap = new TreeMap<String, Container>();
         fDocument = document;
 
         fDocumentPartitioner = new FastPartitioner(
@@ -124,7 +129,6 @@ public class ContainerManager extends EventManager {
         initDocumentListener();
         fDocumentPartitioner.connect(fDocument);
     }
-
 
     protected void initDocumentListener() {
         class DocumentListener implements
@@ -233,16 +237,19 @@ public class ContainerManager extends EventManager {
                 if (from != null && to != null && fContainerComparator.isNotDescending(from, to)) {
                 	NavigableSet<Container> removeSet = fContainers.subSet(from, true, to, true);
                 	if (removeSet != null) {
-                		Container c;
-                		while ((c = removeSet.pollFirst()) != null) {
+                		Container container;
+                		while ((container = removeSet.pollFirst()) != null) {
+                			
                 			// XXX remove container
-                			c.dispose();
-                			fireContainerRemoved(new ContainerManagerEvent(c));
+                			
+                			fID2ContainerMap.remove(container);
+                			container.dispose();
+                			fireContainerRemoved(new ContainerManagerEvent(container));
                 		}
                 	}
                 }
 
-                /* Scanning for new pads */
+                /* Scanning for new containers */
 
                 int offset = beginRegionOffset;
                 while (offset < fChangedPartitioningRegion.getOffset() + fChangedPartitioningRegion.getLength()) {
@@ -251,12 +258,28 @@ public class ContainerManager extends EventManager {
 
                     if (region.getType().equals(IConfiguration.CONTENT_TYPE_EMBEDDED)) {
                     	String containerTextRegion = fDocument.get(region.getOffset(), region.getLength());                   	
-                        // XXX add container                    	                    	                    	
-                        Container e = new Container(
-                        		new Position(region.getOffset(), region.getLength()),
-                        		loadContainerIDFromTextRegion(containerTextRegion));
-
-                        fContainers.add(e);
+                        
+                    	// XXX add container                    	                    	                    	
+                        
+                    	String containerID = loadContainerIDFromTextRegion(containerTextRegion);                    	
+                    	
+                    	Container original = fID2ContainerMap.get(containerID); 
+                    	if (original != null) {
+                    		containerID = allocateContainerID();
+                    	}
+                    	
+                    	Container container = new Container(
+                        	new Position(region.getOffset(), region.getLength()),
+                        	containerID);
+                        
+                        fID2ContainerMap.put("id", container);
+                        fContainers.add(container);
+                        
+                        if (original != null) {
+                        	fireContainerCreated(new ContainerManagerEvent(container));
+                        } else {
+                        	fireContainerDuplicated(new ContainerManagerEvent(container, original));
+                        }                        
                     }
                     offset += region.getLength();
                 }
@@ -301,6 +324,10 @@ public class ContainerManager extends EventManager {
     
     /* Additional functions */
 
+    protected String allocateContainerID() {
+    	return String.format("%d", fID2ContainerMap.hashCode());
+    }
+    
     protected Container getContainerHavingOffset(int offset) {
     	Container c = fContainers.lower(Container.atOffset(offset));
     	if (c != null && c.getPosition().includes(offset)) {

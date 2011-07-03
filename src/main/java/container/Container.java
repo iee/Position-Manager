@@ -12,7 +12,7 @@ public class Container {
 	
 	private static StyledTextManager fStyledTextManager;
 
-	static void setStyledTextManager(StyledTextManager styledTextManager) {
+	public static void setStyledTextManager(StyledTextManager styledTextManager) {
 		fStyledTextManager = styledTextManager;
 	}
 	

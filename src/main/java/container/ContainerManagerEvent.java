@@ -16,15 +16,15 @@ public class ContainerManagerEvent {
 		fOriginal = original;
 	}	
 
-	Container getContainer() {
+	public Container getContainer() {
 		return fContainer;
 	}
 	
-	Container getOriginal() {
+	public Container getOriginal() {
 		return fOriginal;
 	}
 	
-	boolean isContainerDuplicated() {
+	public boolean isContainerDuplicated() {
 		return fOriginal != null;
 	}
 }

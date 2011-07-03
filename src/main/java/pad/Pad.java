@@ -6,13 +6,13 @@ import org.eclipse.swt.widgets.Composite;
 import container.Container;
 
 
-public abstract class AbstractPad
+public abstract class Pad
 {
 	protected String	fPadID;
 	protected Container	fContainer;
 	protected Composite fComposite;
 
-	public AbstractPad(String id)
+	public Pad(String id)
 	{
 		fPadID = id;
 	}
@@ -46,8 +46,10 @@ public abstract class AbstractPad
 	}
 	
 	public void resize(int height, int length)
-	{		
+	{
+		
 	}
+	
 	/*
 	public void addPadListener(IStateChangedListener listener) {
         Assert.isNotNull(listener);
