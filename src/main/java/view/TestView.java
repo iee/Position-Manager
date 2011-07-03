@@ -13,19 +13,18 @@ import container.ContainerManager;
 import container.IStateChangedListener;
 import container.StateChangedEvent;
 
-
 public class TestView extends ViewPart {
 	public static final String ID = "Test.view";
 
 	private TextViewer fTextViewer;
-	private TreeViewer fPadsTreeViewer;
+	private TreeViewer fContainerTreeViewer;
 	private TreeViewer fCheckTreeViewer;
 	private IDocument fDocument;
-	private ContainerManager fPositionManager;
+	private ContainerManager fContainerManager;
 
 	public TestView() {
 		fDocument = new Document();
-		fPositionManager = new ContainerManager(fDocument);
+		fContainerManager = new ContainerManager(fDocument);
 	}
 
 	@Override
@@ -34,21 +33,21 @@ public class TestView extends ViewPart {
 		fTextViewer.setDocument(fDocument);
 		//fTextViewer.setInput(getViewSite());
 		
-		fPadsTreeViewer = new TreeViewer(parent);		
-		fPadsTreeViewer.setLabelProvider(new LabelProvider());
-		fPadsTreeViewer.setContentProvider(new TreeViewerContentProvider());
-		fPadsTreeViewer.setInput(fPositionManager);
+		fContainerTreeViewer = new TreeViewer(parent);		
+		fContainerTreeViewer.setLabelProvider(new LabelProvider());
+		fContainerTreeViewer.setContentProvider(new TreeViewerContentProvider());
+		fContainerTreeViewer.setInput(fContainerManager);
 		
-		fCheckTreeViewer = new TreeViewer(parent);		
-		fCheckTreeViewer.setLabelProvider(new LabelProvider());
-		fCheckTreeViewer.setContentProvider(new TreeViewerContentProviderCheck());
-		fCheckTreeViewer.setInput(fPositionManager);
+		//fCheckTreeViewer = new TreeViewer(parent);		
+		//fCheckTreeViewer.setLabelProvider(new LabelProvider());
+		//fCheckTreeViewer.setContentProvider(new TreeViewerContentProviderCheck());
+		//fCheckTreeViewer.setInput(fContainerManager);
 		
-		fPositionManager.addStateChangedListener(new IStateChangedListener() {
+		fContainerManager.addStateChangedListener(new IStateChangedListener() {
 			@Override
 			public void stateChanged(StateChangedEvent event) {
-				fPadsTreeViewer.refresh();	
-				fCheckTreeViewer.refresh();
+				fContainerTreeViewer.refresh();	
+				//fCheckTreeViewer.refresh();
 			}
 		});
 	}

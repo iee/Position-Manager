@@ -35,10 +35,42 @@ public class ContainerManager extends EventManager {
     public Object[] getContainers() {
         return fContainers.toArray();
     }
-
-
+    
+    public void RequestContainerAllocation(String containerID, Position at) {
+    	String containerEmbeddedRegion = 
+    			IConfiguration.EMBEDDED_REGION_BEGINS +
+				containerID +
+				IConfiguration.EMBEDDED_REGION_ENDS;		
+    	try {
+			fDocument.replace(at.getOffset(), 0, containerEmbeddedRegion);
+		} catch (BadLocationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
+    
+    public void RequestContainerRelease(Container c) {
+    	Position at = c.getPosition();
+    	try {
+			fDocument.replace(at.getOffset(), at.getLength(), "");
+		} catch (BadLocationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }      
+    
     /* Functions for observers */
 
+    public void addContainerManagerListener(IContainerManagerListener listener) {
+        Assert.isNotNull(listener);
+        addListenerObject(listener);
+    }
+
+    public void removeContainerManagerListener(IContainerManagerListener listener) {
+        Assert.isNotNull(listener);
+        removeListenerObject(listener);
+    }
+    
     public void addStateChangedListener(IStateChangedListener listener) {
         Assert.isNotNull(listener);
         addListenerObject(listener);
@@ -49,6 +81,27 @@ public class ContainerManager extends EventManager {
         removeListenerObject(listener);
     }
 
+    protected void fireContainerCreated(ContainerManagerEvent event) {
+        Object[] listeners = getListeners();
+        for (int i = 0; i < listeners.length; i++) {
+            ((IContainerManagerListener) listeners[i]).containerCreated(event);
+        }
+    }
+
+    protected void fireContainerRemoved(ContainerManagerEvent event) {
+        Object[] listeners = getListeners();
+        for (int i = 0; i < listeners.length; i++) {
+            ((IContainerManagerListener) listeners[i]).containerRemoved(event);
+        }
+    }
+    
+    protected void fireContainerDuplicated(ContainerManagerEvent event) {
+        Object[] listeners = getListeners();
+        for (int i = 0; i < listeners.length; i++) {
+            ((IContainerManagerListener) listeners[i]).containerDuplicated(event);
+        }
+    }
+    
     protected void fireStateChangedEvent(StateChangedEvent event) {
         Object[] listeners = getListeners();
         for (int i = 0; i < listeners.length; i++) {
@@ -72,13 +125,6 @@ public class ContainerManager extends EventManager {
         fDocumentPartitioner.connect(fDocument);
     }
 
-    protected Container getPadContainingOffset(int offset) {
-    	Container p = fContainers.lower(Container.atOffset(offset));
-    	if (p != null && p.getPosition().includes(offset)) {
-    		return p;
-    	}
-    	return null;
-    }
 
     protected void initDocumentListener() {
         class DocumentListener implements
@@ -93,9 +139,9 @@ public class ContainerManager extends EventManager {
             @Override
             public void documentPartitioningChanged(DocumentPartitioningChangedEvent event) {
                 fChangedPartitioningRegion = event.getChangedRegion(IConfiguration.PARTITIONING_ID);
-            	if (fChangedPartitioningRegion != null) {
-            		trace(fChangedPartitioningRegion.toString());
-                }
+            	//if (fChangedPartitioningRegion != null) {
+            	//	trace(fChangedPartitioningRegion.toString());
+                //}
             }
 
             @Override
@@ -137,7 +183,7 @@ public class ContainerManager extends EventManager {
                         onPartitioningChanged(event, unmodifiedOffset);
 
                     } else {
-                    	Container current = getPadContainingOffset(event.getOffset());
+                    	Container current = getContainerHavingOffset(event.getOffset());
                         if (current != null) {
 
                         	/* Case 2:
@@ -170,6 +216,8 @@ public class ContainerManager extends EventManager {
                 }
 
                 fChangedPartitioningRegion = null;
+                
+                /* for debug */
                 fireStateChangedEvent(new StateChangedEvent());
             }
 
@@ -185,7 +233,12 @@ public class ContainerManager extends EventManager {
                 if (from != null && to != null && fContainerComparator.isNotDescending(from, to)) {
                 	NavigableSet<Container> removeSet = fContainers.subSet(from, true, to, true);
                 	if (removeSet != null) {
-                		while (removeSet.pollFirst() != null);
+                		Container c;
+                		while ((c = removeSet.pollFirst()) != null) {
+                			// XXX remove container
+                			c.dispose();
+                			fireContainerRemoved(new ContainerManagerEvent(c));
+                		}
                 	}
                 }
 
@@ -197,21 +250,26 @@ public class ContainerManager extends EventManager {
                         .getPartition(IConfiguration.PARTITIONING_ID, offset, false);
 
                     if (region.getType().equals(IConfiguration.CONTENT_TYPE_EMBEDDED)) {
-                        Container e = new Container(new Position(region.getOffset(), region.getLength()));
+                    	String containerTextRegion = fDocument.get(region.getOffset(), region.getLength());                   	
+                        // XXX add container                    	                    	                    	
+                        Container e = new Container(
+                        		new Position(region.getOffset(), region.getLength()),
+                        		loadContainerIDFromTextRegion(containerTextRegion));
+
                         fContainers.add(e);
-                        trace("added");
                     }
                     offset += region.getLength();
                 }
             }
 
-            private void onChangesInsidePad(Container pad, DocumentEvent event) throws BadLocationException, BadPartitioningException {
+            private void onChangesInsidePad(Container container, DocumentEvent event) throws BadLocationException, BadPartitioningException {
             	ITypedRegion region = ((IDocumentExtension3) fDocument)
                 	.getPartition(IConfiguration.PARTITIONING_ID, event.getOffset(), false);
 
-                Assert.isTrue(pad.getPosition().getOffset() == region.getOffset());
-
-                pad.updatePosition(region.getOffset(), region.getLength());
+                Assert.isTrue(container.getPosition().getOffset() == region.getOffset());
+                
+                // XXX update container
+                container.updatePosition(region.getOffset(), region.getLength());
             }
 
             private void moveUnmodifiedPads(int offset, int delta) {
@@ -222,8 +280,13 @@ public class ContainerManager extends EventManager {
                 NavigableSet<Container> tail = fContainers.tailSet(from, true);
                 Iterator<Container> it = tail.iterator();
                 while (it.hasNext()) {
-                    Container e = it.next();
-                    e.move(delta);
+                    Container container = it.next();                                        
+                    Position position = container.getPosition();
+                    
+                    // XXX update container
+                    container.updatePosition(			 
+                    	position.getOffset() + delta,
+                    	position.getLength());
                 }
             }
 
@@ -235,11 +298,24 @@ public class ContainerManager extends EventManager {
         fDocument.addDocumentPartitioningListener(listener);
         fDocument.addDocumentListener(listener);
     }
+    
+    /* Additional functions */
 
-    private static void trace(String message) {
-        System.out.println(Thread.currentThread().getStackTrace()[3].getMethodName() + "() " + message);
+    protected Container getContainerHavingOffset(int offset) {
+    	Container c = fContainers.lower(Container.atOffset(offset));
+    	if (c != null && c.getPosition().includes(offset)) {
+    		return c;
+    	}
+    	return null;
     }
-
+    
+	protected String loadContainerIDFromTextRegion(String text) {	
+		int from = IConfiguration.EMBEDDED_REGION_BEGINS.length();
+		int to = text.indexOf(IConfiguration.EMBEDDED_REGION_ENDS);
+		
+		return text.substring(from, to);		
+	}
+	
     public Position[] getElementsCheck() {
     	try {
 			Position[] positions = fDocument.getPositions(((FastPartitioner)fDocumentPartitioner).getManagingPositionCategories()[0]);
