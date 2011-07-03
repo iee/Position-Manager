@@ -88,14 +88,16 @@ public class ContainerManager extends EventManager {
     protected void fireContainerCreated(ContainerManagerEvent event) {
         Object[] listeners = getListeners();
         for (int i = 0; i < listeners.length; i++) {
-            ((IContainerManagerListener) listeners[i]).containerCreated(event);
+        	((IContainerManagerListener) listeners[i]).containerCreated(event);	
         }
     }
 
     protected void fireContainerRemoved(ContainerManagerEvent event) {
         Object[] listeners = getListeners();
         for (int i = 0; i < listeners.length; i++) {
-            ((IContainerManagerListener) listeners[i]).containerRemoved(event);
+        	if (listeners[i] instanceof IContainerManagerListener) {
+        		((IContainerManagerListener) listeners[i]).containerRemoved(event);	
+        	}
         }
     }
     
