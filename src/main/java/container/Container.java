@@ -23,7 +23,6 @@ public class Container {
 		fPosition = position;
 		fContainerID = containerID;
 		fComposite = fStyledTextManager.AllocateComposite(fContainerID);
-		fComposite.setSize(10, 10);
 		fIsDisposed = false;
 	}
 

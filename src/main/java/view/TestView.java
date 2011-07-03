@@ -53,7 +53,6 @@ public class TestView extends ViewPart {
 			@Override
 			public void mouseDown(MouseEvent e) {				
 					fContainerManager.RequestContainerAllocation(new Position(0));
-					// fDocument.replace(0, 0, "\n<>");
 			}
 			
 			@Override

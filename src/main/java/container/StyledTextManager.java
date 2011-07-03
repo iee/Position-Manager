@@ -14,9 +14,12 @@ import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Device;
 import org.eclipse.swt.graphics.GlyphMetrics;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.FileDialog;
 
 public class StyledTextManager {
 	
@@ -67,6 +70,7 @@ public class StyledTextManager {
 				int offset = fStyledText.getOffsetAtLocation(c.getLocation());
 				StyleRange style = fStyledText.getStyleRangeAtOffset(offset);
 				Rectangle rect = c.getBounds();
+
 				int ascent = 2*rect.height/3;
 				int descent = rect.height - ascent;
 				
@@ -77,11 +81,31 @@ public class StyledTextManager {
 				}
 
 				style.metrics = new GlyphMetrics(ascent + 5, descent + 5, rect.width + 2*5);
-								
+
 				fStyledText.setStyleRange(style);
 			}
 		});
-		
+
+		// REMOVE IT
+        FileDialog fd = new FileDialog(fStyledText.getShell(), SWT.OPEN);
+        fd.setText("Open");
+        fd.setFilterPath("");
+        String[] filterExt = { "*.jpg", "*.png", ".dif" };
+        fd.setFilterExtensions(filterExt);
+        String selected = fd.open();
+        
+        System.out.println(selected);
+        
+        Image image;
+        
+        if (selected != null) {
+        	image = new Image(fStyledText.getDisplay(), selected);
+    		composite.setBackgroundImage(image);
+    		Rectangle rect = image.getBounds();
+    		composite.setSize(new Point(rect.height, rect.width));
+        }
+		// REMOVE IT
+        
 		fID2CompositeMap.put(containerID, composite);		
 		return composite;
 	}

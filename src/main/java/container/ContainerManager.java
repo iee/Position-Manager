@@ -44,7 +44,7 @@ public class ContainerManager extends EventManager {
     	String containerEmbeddedRegion = 
     			IConfiguration.EMBEDDED_REGION_BEGINS +
 				allocateContainerID() +
-				IConfiguration.EMBEDDED_REGION_ENDS;		
+				IConfiguration.EMBEDDED_REGION_ENDS + "\n";
     	try {
 			fDocument.replace(at.getOffset(), 0, containerEmbeddedRegion);
 		} catch (BadLocationException e) {
@@ -104,7 +104,9 @@ public class ContainerManager extends EventManager {
     protected void fireContainerDuplicated(ContainerManagerEvent event) {
         Object[] listeners = getListeners();
         for (int i = 0; i < listeners.length; i++) {
-            ((IContainerManagerListener) listeners[i]).containerDuplicated(event);
+        	if (listeners[i] instanceof IContainerManagerListener) {
+        		((IContainerManagerListener) listeners[i]).containerDuplicated(event);
+        	}
         }
     }
     
