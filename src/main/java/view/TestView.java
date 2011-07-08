@@ -11,8 +11,8 @@ import org.eclipse.ui.part.ViewPart;
 
 import container.Container;
 import container.ContainerManager;
-import container.IStateChangedListener;
-import container.StateChangedEvent;
+import container.ContainerManagerEvent;
+import container.IContainerManagerListener;
 import container.StyledTextManager;
 
 public class TestView extends ViewPart {
@@ -47,11 +47,19 @@ public class TestView extends ViewPart {
 		//fCheckTreeViewer.setContentProvider(new TreeViewerContentProviderCheck());
 		//fCheckTreeViewer.setInput(fContainerManager);
 		
-		fContainerManager.addStateChangedListener(new IStateChangedListener() {
+		fContainerManager.addContainerManagerListener(new IContainerManagerListener() {
 			@Override
-			public void stateChanged(StateChangedEvent event) {
+			public void containerCreated(ContainerManagerEvent event) {
 				fContainerTreeViewer.refresh();	
 				//fCheckTreeViewer.refresh();
+			}
+
+			@Override
+			public void containerDuplicated(ContainerManagerEvent event) {	
+			}
+
+			@Override
+			public void containerRemoved(ContainerManagerEvent event) {				
 			}
 		});
 	}

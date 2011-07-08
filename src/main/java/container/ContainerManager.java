@@ -33,27 +33,46 @@ public class ContainerManager extends EventManager {
     private final ContainerComparator fContainerComparator;
     
     private final Map<String, Container> fID2ContainerMap;
+    
+    private static long fNextContainerID = 0;
 
     /* Public interface */
 
+    public static String allocateContainerID() {
+    	return String.format("%d", fNextContainerID++);
+    }
+    
     public Object[] getContainers() {
         return fContainers.toArray();
     }
     
-    public void RequestContainerAllocation(Position at) {
+    public Position[] getElementsCheck() {
+    	try {
+			Position[] positions = fDocument.getPositions(((FastPartitioner)fDocumentPartitioner).getManagingPositionCategories()[0]);
+			return positions;
+		} catch (BadPositionCategoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+    }
+    
+    public void RequestContainerAllocation(String containerID, int offset) {
     	String containerEmbeddedRegion = 
     			IConfiguration.EMBEDDED_REGION_BEGINS +
-				allocateContainerID() +
+				containerID +
 				IConfiguration.EMBEDDED_REGION_ENDS;		
     	try {
-			fDocument.replace(at.getOffset(), 0, containerEmbeddedRegion);
+			fDocument.replace(offset, 0, containerEmbeddedRegion);
 		} catch (BadLocationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
     }
     
-    public void RequestContainerRelease(Container c) {
+    public void RequestContainerRelease(String containerID) {
+    	Container c = fID2ContainerMap.get(containerID);
+    	Assert.isNotNull(c);    	
     	Position at = c.getPosition();
     	try {
 			fDocument.replace(at.getOffset(), at.getLength(), "");
@@ -61,7 +80,7 @@ public class ContainerManager extends EventManager {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-    }      
+    }
     
     /* Functions for observers */
 
@@ -71,16 +90,6 @@ public class ContainerManager extends EventManager {
     }
 
     public void removeContainerManagerListener(IContainerManagerListener listener) {
-        Assert.isNotNull(listener);
-        removeListenerObject(listener);
-    }
-    
-    public void addStateChangedListener(IStateChangedListener listener) {
-        Assert.isNotNull(listener);
-        addListenerObject(listener);
-    }
-
-    public void removeStateChangedListener(IStateChangedListener listener) {
         Assert.isNotNull(listener);
         removeListenerObject(listener);
     }
@@ -103,13 +112,6 @@ public class ContainerManager extends EventManager {
         Object[] listeners = getListeners();
         for (int i = 0; i < listeners.length; i++) {
             ((IContainerManagerListener) listeners[i]).containerDuplicated(event);
-        }
-    }
-    
-    protected void fireStateChangedEvent(StateChangedEvent event) {
-        Object[] listeners = getListeners();
-        for (int i = 0; i < listeners.length; i++) {
-            ((IStateChangedListener) listeners[i]).stateChanged(event);
         }
     }
 
@@ -222,7 +224,7 @@ public class ContainerManager extends EventManager {
                 fChangedPartitioningRegion = null;
                 
                 /* for debug */
-                fireStateChangedEvent(new StateChangedEvent());
+                fireContainerCreated(new ContainerManagerEvent(null));
             }
 
             private void onPartitioningChanged(DocumentEvent event, int unmodifiedOffset) throws BadLocationException, BadPartitioningException {
@@ -323,10 +325,6 @@ public class ContainerManager extends EventManager {
     }
     
     /* Additional functions */
-
-    protected String allocateContainerID() {
-    	return String.format("%d", fID2ContainerMap.hashCode());
-    }
     
     protected Container getContainerHavingOffset(int offset) {
     	Container c = fContainers.lower(Container.atOffset(offset));
@@ -342,15 +340,4 @@ public class ContainerManager extends EventManager {
 		
 		return text.substring(from, to);		
 	}
-	
-    public Position[] getElementsCheck() {
-    	try {
-			Position[] positions = fDocument.getPositions(((FastPartitioner)fDocumentPartitioner).getManagingPositionCategories()[0]);
-			return positions;
-		} catch (BadPositionCategoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return null;
-    }
 }

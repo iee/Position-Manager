@@ -20,7 +20,7 @@ public class ContainerManagerEvent {
 		return fContainer;
 	}
 	
-	public Container getOriginal() {
+	public Container getOriginalContainer() {
 		return fOriginal;
 	}
 	

@@ -1,12 +1,14 @@
 package pad;
 
 import org.eclipse.core.runtime.Assert;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 
 import container.Container;
 
 
-public abstract class Pad
+public class Pad
 {
 	protected String	fPadID;
 	protected Container	fContainer;
@@ -37,6 +39,7 @@ public abstract class Pad
 		Assert.isNotNull(container);
 		Assert.isLegal(!isContainerAttached(), "Another container is already attached");
 		fContainer = container;
+		draw(fContainer.getComposite());
 	}
 	
 	public void detachContainer()
@@ -48,6 +51,11 @@ public abstract class Pad
 	public void resize(int height, int length)
 	{
 		
+	}
+	
+	public void draw(Composite parent)
+	{
+		new Button(parent, SWT.BUTTON1).setText("Cat");
 	}
 	
 	/*
