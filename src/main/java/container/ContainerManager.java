@@ -61,7 +61,8 @@ public class ContainerManager extends EventManager {
     	String containerEmbeddedRegion = 
     			IConfiguration.EMBEDDED_REGION_BEGINS +
 				containerID +
-				IConfiguration.EMBEDDED_REGION_ENDS;		
+				IConfiguration.EMBEDDED_REGION_ENDS + "\n";
+
     	try {
 			fDocument.replace(offset, 0, containerEmbeddedRegion);
 		} catch (BadLocationException e) {
@@ -97,14 +98,14 @@ public class ContainerManager extends EventManager {
     protected void fireContainerCreated(ContainerManagerEvent event) {
         Object[] listeners = getListeners();
         for (int i = 0; i < listeners.length; i++) {
-            ((IContainerManagerListener) listeners[i]).containerCreated(event);
+        	((IContainerManagerListener) listeners[i]).containerCreated(event);	
         }
     }
 
     protected void fireContainerRemoved(ContainerManagerEvent event) {
         Object[] listeners = getListeners();
         for (int i = 0; i < listeners.length; i++) {
-            ((IContainerManagerListener) listeners[i]).containerRemoved(event);
+        	((IContainerManagerListener) listeners[i]).containerRemoved(event);	
         }
     }
     
