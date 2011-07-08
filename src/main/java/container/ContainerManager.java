@@ -278,7 +278,7 @@ public class ContainerManager extends EventManager {
                         fID2ContainerMap.put("id", container);
                         fContainers.add(container);
                         
-                        if (original != null) {
+                        if (original == null) {
                         	fireContainerCreated(new ContainerManagerEvent(container));
                         } else {
                         	fireContainerDuplicated(new ContainerManagerEvent(container, original));

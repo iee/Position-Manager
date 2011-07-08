@@ -87,7 +87,7 @@ public class StyledTextManager {
 		});
 
 		// REMOVE IT
-        FileDialog fd = new FileDialog(fStyledText.getShell(), SWT.OPEN);
+       /* FileDialog fd = new FileDialog(fStyledText.getShell(), SWT.OPEN);
         fd.setText("Open");
         fd.setFilterPath("");
         String[] filterExt = { "*.jpg", "*.png", ".dif" };
@@ -105,6 +105,7 @@ public class StyledTextManager {
     		composite.setSize(new Point(rect.height, rect.width));
         }
 		// REMOVE IT
+		 */
         
 		fID2CompositeMap.put(containerID, composite);		
 		return composite;
