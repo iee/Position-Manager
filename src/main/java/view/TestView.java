@@ -1,9 +1,7 @@
 package view;
 
-import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.IDocument;
-import org.eclipse.jface.text.Position;
 import org.eclipse.jface.text.TextViewer;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.TreeViewer;
@@ -14,10 +12,13 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.part.ViewPart;
 
+import pad.Pad;
+import pad.PadManager;
+
 import container.Container;
 import container.ContainerManager;
-import container.IStateChangedListener;
-import container.StateChangedEvent;
+import container.ContainerManagerEvent;
+import container.IContainerManagerListener;
 import container.StyledTextManager;
 
 public class TestView extends ViewPart {
@@ -25,66 +26,81 @@ public class TestView extends ViewPart {
 
 	private TextViewer fTextViewer;
 	private TreeViewer fContainerTreeViewer;
-	private TreeViewer fCheckTreeViewer;
+	private TreeViewer fPadTreeViewer;
+	//private TreeViewer fCheckTreeViewer;
+	
 	private IDocument fDocument;
 	private ContainerManager fContainerManager;
+	private PadManager fPadManager;
 	
 	public TestView() {
 		fDocument = new Document();
 		fContainerManager = new ContainerManager(fDocument);
+		fPadManager = new PadManager(fContainerManager);
+		
 	}
 
 	@Override
 	public void createPartControl(Composite parent) {
 		fTextViewer = new TextViewer(parent, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL);
 		fTextViewer.setDocument(fDocument);
-
+		Container.setStyledTextManager(new StyledTextManager(fTextViewer.getTextWidget()));
 		
 		Button button = new Button(parent, SWT.PUSH);
 		
 		button.addMouseListener(new MouseListener() {
+			@Override
+			public void mouseDown(MouseEvent e) {				
+				fPadManager.addPad(new Pad("PadID"), 0);
+			}
 			
 			@Override
 			public void mouseUp(MouseEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			@Override
-			public void mouseDown(MouseEvent e) {				
-					fContainerManager.RequestContainerAllocation(new Position(0));
-			}
+			}			
 			
 			@Override
 			public void mouseDoubleClick(MouseEvent e) {
-				// TODO Auto-generated method stub
-				
 			}
 		});
 		
-		button.setText("Add container");
+		button.setText("Add pad");
 		
 		// button.Add
 		
 		//fTextViewer.setInput(getViewSite());
-		
-		Container.setStyledTextManager(new StyledTextManager(fTextViewer.getTextWidget()));
 
 		fContainerTreeViewer = new TreeViewer(parent);		
 		fContainerTreeViewer.setLabelProvider(new LabelProvider());
-		fContainerTreeViewer.setContentProvider(new TreeViewerContentProvider());
+		fContainerTreeViewer.setContentProvider(new ContainerTreeViewerContentProvider());
 		fContainerTreeViewer.setInput(fContainerManager);
+		
+		fPadTreeViewer = new TreeViewer(parent);
+		fPadTreeViewer.setLabelProvider(new LabelProvider());
+		fPadTreeViewer.setContentProvider(new PadTreeViewerContentProvider());
+		fPadTreeViewer.setInput(fPadManager);
 		
 		//fCheckTreeViewer = new TreeViewer(parent);		
 		//fCheckTreeViewer.setLabelProvider(new LabelProvider());
 		//fCheckTreeViewer.setContentProvider(new TreeViewerContentProviderCheck());
 		//fCheckTreeViewer.setInput(fContainerManager);
 		
-		fContainerManager.addStateChangedListener(new IStateChangedListener() {
+		fContainerManager.addContainerManagerListener(new IContainerManagerListener() {
 			@Override
-			public void stateChanged(StateChangedEvent event) {
-				fContainerTreeViewer.refresh();	
-				//fCheckTreeViewer.refresh();
+			public void debugNotification(ContainerManagerEvent event) {
+				fContainerTreeViewer.refresh();
+				fPadTreeViewer.refresh();
+			}
+			
+			@Override
+			public void containerCreated(ContainerManagerEvent event) {
+			}
+
+			@Override
+			public void containerDuplicated(ContainerManagerEvent event) {	
+			}
+
+			@Override
+			public void containerRemoved(ContainerManagerEvent event) {				
 			}
 		});
 	}

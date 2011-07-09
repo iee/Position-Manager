@@ -6,11 +6,11 @@ import org.eclipse.jface.viewers.Viewer;
 import container.ContainerManager;
 
 
-public class TreeViewerContentProviderCheck implements ITreeContentProvider {
+public class ContainerTreeViewerContentProvider implements ITreeContentProvider {
 
 	@Override
 	public Object[] getElements(Object inputElement) {
-		return ((ContainerManager) inputElement).getElementsCheck();
+		return ((ContainerManager) inputElement).getElements();
 	}
 	
 	@Override
@@ -35,5 +35,4 @@ public class TreeViewerContentProviderCheck implements ITreeContentProvider {
 	@Override
 	public void inputChanged(Viewer viewer, Object oldInput, Object newInput) {
 	}	
-
 }

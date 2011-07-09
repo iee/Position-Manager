@@ -1,9 +1,6 @@
 package container;
 
 import org.eclipse.jface.text.Position;
-import org.eclipse.swt.events.ControlEvent;
-import org.eclipse.swt.events.ControlListener;
-import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 
 public class Container {
@@ -22,8 +19,9 @@ public class Container {
 	Container(Position position, String containerID) {		
 		fPosition = position;
 		fContainerID = containerID;
-		fComposite = fStyledTextManager.AllocateComposite(fContainerID);
-		fIsDisposed = false;
+		fComposite = fStyledTextManager.allocateComposite(fContainerID);
+		fIsDisposed = false;		
+		fStyledTextManager.updateCompositePresentaion(fContainerID, fPosition.offset);
 	}
 
 	public String getContainerID() {
@@ -49,20 +47,23 @@ public class Container {
 	}
 	
 	void dispose() {
-		fStyledTextManager.ReleaseComposite(fContainerID);
+		fStyledTextManager.releaseComposite(fContainerID);
 		fIsDisposed = true;
 	}
 	
 	protected void onMove() {
 		/* Update StyledText stuff */
-		fStyledTextManager.setBounds(fContainerID, fPosition.offset);
+		fStyledTextManager.updateCompositePresentaion(fContainerID, fPosition.offset);
 	}
-		
+
 	@Override
 	public String toString() {
 		return "[" + fContainerID + ", " + fPosition + "]";
 	}
-		
+
+
+	/* Functions for comparator */
+	
 	private Container(Position position) {
 		fPosition = position;
 	}

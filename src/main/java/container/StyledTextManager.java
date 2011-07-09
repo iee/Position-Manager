@@ -28,35 +28,25 @@ public class StyledTextManager {
 	
 	public StyledTextManager(StyledText styledText) {
 		fStyledText = styledText;
+		
+		fStyledText.addLineStyleListener(new LineStyleListener() {
+			
+			@Override
+			public void lineGetStyle(LineStyleEvent e) {			
+				//e.styles = new StyleRange[1];
+				//e.lineOffset 
+				
+				//StyleRange style = new StyleRange();
+				
+				//Rectangle rect = 
+				//style.metrics = new GlyphMetrics(0, 0, ;
+			}
+		});
+	}
 
-//		fStyledText.addLineStyleListener(new LineStyleListener() {
-//			
-//			@Override
-//			public void lineGetStyle(LineStyleEvent e) {
-//				e.styles = new StyleRange[1];
-//				
-//				StyleRange style = new StyleRange();
-//				
-//				Rectangle rect = 
-//				style.metrics = new GlyphMetrics(0, 0, ;
-//			}
-//		});
-	}
-	
-	void setBounds(String containerID, int offset)
-	{
-		Composite composite = fID2CompositeMap.get(containerID);
-			
-		Assert.isNotNull(composite);
-			
-		Point point = fStyledText.getLocationAtOffset(offset);
+	Composite allocateComposite(String containerID) {
+		System.out.println("allocateComposite");
 		
-		Point size = composite.getSize();
-		
-		composite.setBounds(point.x, point.y, size.x, size.y);
-	}
-	
-	Composite AllocateComposite(String containerID) {
 		Composite composite = new Composite(fStyledText, SWT.NULL);
 		
 		composite.addControlListener(new ControlListener() {
@@ -66,12 +56,16 @@ public class StyledTextManager {
 
 			@Override
 			public void controlResized(ControlEvent e) {
-				Composite c = (Composite) e.getSource();
-				int offset = fStyledText.getOffsetAtLocation(c.getLocation());
+				System.out.println("controlResized");
+				
+				//reconsilPresentation();
+				
+				Composite composite = (Composite) e.getSource();
+				int offset = fStyledText.getOffsetAtLocation(composite.getLocation());
 				StyleRange style = fStyledText.getStyleRangeAtOffset(offset);
-				Rectangle rect = c.getBounds();
+				Rectangle rect = composite.getBounds();
 
-				int ascent = 2*rect.height/3;
+				int ascent = 2 * rect.height / 3;
 				int descent = rect.height - ascent;
 				
 				if (style == null) {
@@ -87,7 +81,7 @@ public class StyledTextManager {
 		});
 
 		// REMOVE IT
-        FileDialog fd = new FileDialog(fStyledText.getShell(), SWT.OPEN);
+       /* FileDialog fd = new FileDialog(fStyledText.getShell(), SWT.OPEN);
         fd.setText("Open");
         fd.setFilterPath("");
         String[] filterExt = { "*.jpg", "*.png", ".dif" };
@@ -105,17 +99,52 @@ public class StyledTextManager {
     		composite.setSize(new Point(rect.height, rect.width));
         }
 		// REMOVE IT
+		 */
         
 		fID2CompositeMap.put(containerID, composite);		
 		return composite;
 	}
 	
-	void ReleaseComposite(String fContainerID) {
-		Composite composite = fID2CompositeMap.get(fContainerID);
+	void releaseComposite(String fContainerID) {
+		System.out.println("releaseComposite");
 		
+		Composite composite = fID2CompositeMap.get(fContainerID);
 		Assert.isNotNull(composite);
 		
 		composite.dispose();
 		fID2CompositeMap.remove(fContainerID);
+	}
+	
+	void updateCompositePresentaion(String id, int offset)
+	{
+		System.out.println("updateCompositePresentaion");
+		
+		Composite composite = fID2CompositeMap.get(id);
+		Assert.isNotNull(composite);
+			
+		Point point = fStyledText.getLocationAtOffset(offset);
+		Point gabarit = composite.getSize();
+		composite.setBounds(point.x, point.y, gabarit.x, gabarit.y);
+		//reconsilPresentation(composite);
+	}
+	
+	protected void setStyle(Composite composite, int offset) {
+		
+		//int offset = fStyledText.getOffsetAtLocation(composite.getLocation());
+		StyleRange style = fStyledText.getStyleRangeAtOffset(offset);
+		Rectangle rect = composite.getBounds();
+
+		int ascent = 2 * rect.height / 3;
+		int descent = rect.height - ascent;
+		
+		if (style == null) {
+			style = new StyleRange();
+			style.start = offset;
+			style.length = 1;
+		}
+
+		style.metrics = new GlyphMetrics(ascent + 5, descent + 5, rect.width + 2*5);
+
+		fStyledText.setStyleRange(style);
 	}
 }

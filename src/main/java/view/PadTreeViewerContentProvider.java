@@ -3,14 +3,13 @@ package view;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.Viewer;
 
-import container.ContainerManager;
+import pad.PadManager;
 
-
-public class TreeViewerContentProvider implements ITreeContentProvider {
+public class PadTreeViewerContentProvider implements ITreeContentProvider {
 
 	@Override
 	public Object[] getElements(Object inputElement) {
-		return ((ContainerManager) inputElement).getContainers();
+		return ((PadManager) inputElement).getElements();
 	}
 	
 	@Override
