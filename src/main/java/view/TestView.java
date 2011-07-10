@@ -14,6 +14,7 @@ import org.eclipse.ui.part.ViewPart;
 
 import pad.Pad;
 import pad.PadManager;
+import plugin.PadDT;
 
 import container.Container;
 import container.ContainerManager;
@@ -31,7 +32,7 @@ public class TestView extends ViewPart {
 	
 	private IDocument fDocument;
 	private ContainerManager fContainerManager;
-	private PadManager fPadManager;
+	private static PadManager fPadManager;
 	
 	public TestView() {
 		fDocument = new Document();
@@ -39,8 +40,22 @@ public class TestView extends ViewPart {
 		fPadManager = new PadManager(fContainerManager);
 	}
 
+	/* XXX: Временное решения для обеспечения возможности добавление 
+	 * своих действия на главный контрол */
+	private static Composite fMainComposite;
+	public static Composite getMainComposite()
+	{
+		return fMainComposite;
+	}
+	
+	public static PadManager getPadManager()
+	{
+		return fPadManager;
+	}
+	
 	@Override
 	public void createPartControl(Composite parent) {
+		fMainComposite = parent;
 		fTextViewer = new TextViewer(parent, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL);
 		fTextViewer.setDocument(fDocument);
 		//Container.setStyledTextManager(new StyledTextManager(fTextViewer.getTextWidget()));
@@ -64,6 +79,9 @@ public class TestView extends ViewPart {
 		});
 		
 		button.setText("Add pad");
+		
+		// Register plugin
+		new PadDT("PadDT");
 		
 		// button.Add
 		
