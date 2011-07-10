@@ -131,6 +131,15 @@ public class ContainerManager extends EventManager {
         fDocumentPartitioner.connect(fDocument);
     }
     
+    /* Presentation update */
+    
+    private void updateContainerPresentaions() {
+    	Iterator<Container> it = fContainers.iterator();
+    	while (it.hasNext()) {
+    	    Container container = it.next();
+    	    container.updatePresentation();
+    	}
+    }
     
     /* Document modification access */
     
@@ -257,7 +266,8 @@ public class ContainerManager extends EventManager {
                 fChangedPartitioningRegion = null;
             	fIsDocumentListenerBusy = false;
                 processNextModification();
-                                
+                
+                updateContainerPresentaions();
                 /* For debug */
                 
                 fireDebugNotification(new ContainerManagerEvent(null));

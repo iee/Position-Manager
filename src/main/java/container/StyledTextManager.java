@@ -11,6 +11,8 @@ import org.eclipse.swt.custom.StyleRange;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.events.ControlListener;
+import org.eclipse.swt.events.ModifyEvent;
+import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Device;
 import org.eclipse.swt.graphics.GlyphMetrics;
@@ -28,11 +30,22 @@ public class StyledTextManager {
 	
 	public StyledTextManager(StyledText styledText) {
 		fStyledText = styledText;
-		
+
 		fStyledText.addLineStyleListener(new LineStyleListener() {
 			
 			@Override
 			public void lineGetStyle(LineStyleEvent e) {			
+				
+				if (e.lineText.startsWith("<")) {
+					StyleRange style = new StyleRange();
+					style.start = e.lineOffset;
+					style.length = 2;
+					style.metrics = new GlyphMetrics(0, 0, 10);
+					
+					e.styles = new StyleRange[] { style };
+				}
+
+				
 				//e.styles = new StyleRange[1];
 				//e.lineOffset 
 				
@@ -44,63 +57,15 @@ public class StyledTextManager {
 		});
 	}
 
+	public Point getLocationAtOffset(int offset) {
+		return fStyledText.getLocationAtOffset(offset);
+	}
+	
 	Composite allocateComposite(String containerID) {
 		System.out.println("allocateComposite");
 		
-		Composite composite = new Composite(fStyledText, SWT.NULL);
-		
-		composite.addControlListener(new ControlListener() {
-			@Override
-			public void controlMoved(ControlEvent e) {
-			}
-
-			@Override
-			public void controlResized(ControlEvent e) {
-				System.out.println("controlResized");
-				
-				//reconsilPresentation();
-				
-				Composite composite = (Composite) e.getSource();
-				int offset = fStyledText.getOffsetAtLocation(composite.getLocation());
-				StyleRange style = fStyledText.getStyleRangeAtOffset(offset);
-				Rectangle rect = composite.getBounds();
-
-				int ascent = 2 * rect.height / 3;
-				int descent = rect.height - ascent;
-				
-				if (style == null) {
-					style = new StyleRange();
-					style.start = offset;
-					style.length = 1;
-				}
-
-				style.metrics = new GlyphMetrics(ascent + 5, descent + 5, rect.width + 2*5);
-
-				fStyledText.setStyleRange(style);
-			}
-		});
-
-		// REMOVE IT
-       /* FileDialog fd = new FileDialog(fStyledText.getShell(), SWT.OPEN);
-        fd.setText("Open");
-        fd.setFilterPath("");
-        String[] filterExt = { "*.jpg", "*.png", ".dif" };
-        fd.setFilterExtensions(filterExt);
-        String selected = fd.open();
-        
-        System.out.println(selected);
-        
-        Image image;
-        
-        if (selected != null) {
-        	image = new Image(fStyledText.getDisplay(), selected);
-    		composite.setBackgroundImage(image);
-    		Rectangle rect = image.getBounds();
-    		composite.setSize(new Point(rect.height, rect.width));
-        }
-		// REMOVE IT
-		 */
-        
+		Composite composite = new Composite(fStyledText, SWT.NONE);
+		        
 		fID2CompositeMap.put(containerID, composite);		
 		return composite;
 	}
@@ -119,31 +84,29 @@ public class StyledTextManager {
 	{
 		System.out.println("updateCompositePresentaion");
 		
+		/* Set position */
+		
 		Composite composite = fID2CompositeMap.get(id);
 		Assert.isNotNull(composite);
 			
 		Point point = fStyledText.getLocationAtOffset(offset);
 		Point gabarit = composite.getSize();
 		composite.setBounds(point.x, point.y, gabarit.x, gabarit.y);
-		//reconsilPresentation(composite);
-	}
-	
-	protected void setStyle(Composite composite, int offset) {
+				
+		/* Set style */
 		
-		//int offset = fStyledText.getOffsetAtLocation(composite.getLocation());
-		StyleRange style = fStyledText.getStyleRangeAtOffset(offset);
-		Rectangle rect = composite.getBounds();
+		//StyleRange style = fStyledText.getStyleRangeAtOffset(offset);
+		//Rectangle bounds = composite.getBounds();
 
-		int ascent = 2 * rect.height / 3;
-		int descent = rect.height - ascent;
+		//int ascent = 2 * bounds.height / 3;
+		//int descent = bounds.height - ascent;
 		
-		if (style == null) {
-			style = new StyleRange();
-			style.start = offset;
-			style.length = 1;
-		}
-
-		style.metrics = new GlyphMetrics(ascent + 5, descent + 5, rect.width + 2*5);
+		//if (style == null) {
+		StyleRange style = new StyleRange();
+		style.start = offset;
+		style.length = 2;
+		style.metrics = new GlyphMetrics(0, 0, 40);
+		//}
 
 		fStyledText.setStyleRange(style);
 	}

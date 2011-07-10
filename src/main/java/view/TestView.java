@@ -37,14 +37,14 @@ public class TestView extends ViewPart {
 		fDocument = new Document();
 		fContainerManager = new ContainerManager(fDocument);
 		fPadManager = new PadManager(fContainerManager);
-		
 	}
 
 	@Override
 	public void createPartControl(Composite parent) {
 		fTextViewer = new TextViewer(parent, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL);
 		fTextViewer.setDocument(fDocument);
-		Container.setStyledTextManager(new StyledTextManager(fTextViewer.getTextWidget()));
+		//Container.setStyledTextManager(new StyledTextManager(fTextViewer.getTextWidget()));
+		Container.setStyledTextManager(fTextViewer.getTextWidget());
 		
 		Button button = new Button(parent, SWT.PUSH);
 		

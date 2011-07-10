@@ -2,6 +2,7 @@ package pad;
 
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 
@@ -50,8 +51,11 @@ public class Pad
 		
 	public void createPartControl(Composite parent)
 	{
-		Button button = new Button(parent, SWT.PUSH);
-		button.setText("Cat");
-		button.setBounds(0, 0, 100, 100);
+		parent.setBackground(parent.getDisplay().getSystemColor(SWT.COLOR_DARK_BLUE));
+		parent.setSize(new Point(10, 10));
+		
+		//Button button = new Button(parent, SWT.PUSH);
+		//button.setText("Cat");
+		//button.setBounds(0, 0, 100, 100);
 	}
 }
