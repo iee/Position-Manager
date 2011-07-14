@@ -3,10 +3,8 @@ package container;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableSet;
-import java.util.Queue;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.eclipse.core.commands.common.EventManager;
 import org.eclipse.core.runtime.Assert;
@@ -24,9 +22,11 @@ import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.ITypedRegion;
 import org.eclipse.jface.text.Position;
 import org.eclipse.jface.text.rules.FastPartitioner;
+import org.eclipse.swt.custom.StyledText;
 
 public class ContainerManager extends EventManager {
 
+	private final StyledText fStyledText;
     private final IDocument fDocument;
     private final IDocumentPartitioner fDocumentPartitioner;
 
@@ -36,50 +36,55 @@ public class ContainerManager extends EventManager {
     
     private static long fNextContainerID = 0;
     
-    private Queue<DocumentEvent> fDocumentModificationRequests;
-    private boolean fIsDocumentListenerBusy;
-
     
     /* Public interface */
 
+    
     public static String allocateContainerID() {
     	return String.format("%d", fNextContainerID++);
     }
     
+    
     public Object[] getElements() {
         return fContainers.toArray();
     }
+    
         
     public void RequestContainerAllocation(String containerID, int offset) {
-    	String containerEmbeddedRegion = 
-    		IConfiguration.EMBEDDED_REGION_BEGINS +
-			containerID +
-			IConfiguration.EMBEDDED_REGION_ENDS + "\n";
-
-   		requestDocumentModification(fDocument, offset, 0, containerEmbeddedRegion);
+    	String containerEmbeddedRegion =
+    		Container.getInitialTextRegion(containerID);
+    	
+    	try {
+			fDocument.replace(offset, 0, containerEmbeddedRegion);
+		} catch (BadLocationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
     
+    
     public void RequestContainerRelease(String containerID) {
-    	Container c = fID2ContainerMap.get(containerID);
-    	Assert.isNotNull(c);    	
-    	Position at = c.getPosition();
-
-   		requestDocumentModification(fDocument, at.getOffset(), at.getLength(), "");
+    	Container container = fID2ContainerMap.get(containerID);
+    	Assert.isNotNull(container);    	
+    	container.requestTextRegionRelease();
     }
     
     
     /* Functions for observers */
 
+    
     public void addContainerManagerListener(IContainerManagerListener listener) {
         Assert.isNotNull(listener);
         addListenerObject(listener);
     }
 
+    
     public void removeContainerManagerListener(IContainerManagerListener listener) {
         Assert.isNotNull(listener);
         removeListenerObject(listener);
     }
 
+    
     protected void fireContainerCreated(ContainerManagerEvent event) {
         Object[] listeners = getListeners();
         for (int i = 0; i < listeners.length; i++) {
@@ -87,6 +92,7 @@ public class ContainerManager extends EventManager {
         }
     }
 
+    
     protected void fireContainerRemoved(ContainerManagerEvent event) {
         Object[] listeners = getListeners();
         for (int i = 0; i < listeners.length; i++) {
@@ -94,12 +100,14 @@ public class ContainerManager extends EventManager {
         }
     }
     
+    
     protected void fireContainerDuplicated(ContainerManagerEvent event) {
         Object[] listeners = getListeners();
         for (int i = 0; i < listeners.length; i++) {
             ((IContainerManagerListener) listeners[i]).containerDuplicated(event);
         }
     }
+    
     
     protected void fireDebugNotification(ContainerManagerEvent event) {
         Object[] listeners = getListeners();
@@ -111,14 +119,14 @@ public class ContainerManager extends EventManager {
     
     /* Constructor */
     
-    public ContainerManager(IDocument document) {
+    
+    public ContainerManager(IDocument document, StyledText styledText) {
+    	fStyledText = styledText;
+    	
         fContainerComparator = new ContainerComparator();
     	fContainers = new TreeSet<Container>(fContainerComparator);
     	fID2ContainerMap = new TreeMap<String, Container>();
         fDocument = document;
-        
-        fDocumentModificationRequests = new ConcurrentLinkedQueue<DocumentEvent>();
-    	fIsDocumentListenerBusy = false;
 
         fDocumentPartitioner = new FastPartitioner(
             new PartitioningScanner(),
@@ -131,70 +139,62 @@ public class ContainerManager extends EventManager {
         fDocumentPartitioner.connect(fDocument);
     }
     
+    
     /* Presentation update */
+    
     
     private void updateContainerPresentaions() {
     	Iterator<Container> it = fContainers.iterator();
     	while (it.hasNext()) {
     	    Container container = it.next();
+//    	    container.setVisiable(true);
     	    container.updatePresentation();
     	}
     }
-    
-    /* Document modification access */
-    
-    private void requestDocumentModification(IDocument document, int offset, int length, String text) {
-    	DocumentEvent modification = new DocumentEvent(document, offset, length, text);
 
-    	if (fIsDocumentListenerBusy) {
-    		fDocumentModificationRequests.add(new DocumentEvent(document, offset, length, text));
-    	} else {
-    		applyDocumentModification(modification);	
-    	}
-    }
     
-    private void processNextModification() {
-    	if (fIsDocumentListenerBusy) {
-    		return;
-    	}	    
-    	
-    	DocumentEvent modification = fDocumentModificationRequests.poll();
-	    if (modification != null) {
-	    	applyDocumentModification(modification);
-	    }
-    }
-    
-    private void applyDocumentModification(DocumentEvent modification) {
-    	try {
-			modification.getDocument().replace(modification.getOffset(), modification.getLength(), modification.getText());
-		} catch (BadLocationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-    }
-  
-
     /* Document modification event processing */
     
+    
+//    private boolean allowStyledTextModification;
+    
     protected void initDocumentListener() {
-        class DocumentListener implements
+    /*    
+    	fStyledText.addVerifyListener(new VerifyListener() {
+
+			@Override
+			public void verifyText(VerifyEvent e) {		
+				if (!allowStyledTextModification) {
+	            	Iterator<Container> it = fContainers.iterator();
+	            	while (it.hasNext()) {
+	            		Container c = it.next();
+	            		c.setVisiable(false);
+	            	}
+				}
+			}
+        });
+        */
+        
+    	class DocumentListener implements
         IDocumentListener, IDocumentPartitioningListener, IDocumentPartitioningListenerExtension2
         {
             private IRegion fChangedPartitioningRegion;
 
+            
             public DocumentListener() {
             	fChangedPartitioningRegion = null;
             }
+            
             
             @Override
             public void documentPartitioningChanged(DocumentPartitioningChangedEvent event) {
             	fChangedPartitioningRegion = event.getChangedRegion(IConfiguration.PARTITIONING_ID);
             }
    
+            
             @Override
-            public void documentChanged(DocumentEvent event) {                
-            	fIsDocumentListenerBusy = true;
-            	
+            public void documentChanged(DocumentEvent event) {
+
             	/* All pads which placed after 'unmodifiedOffset'
             	 * are considered to be just moved without any other modifications.
             	 *
@@ -264,15 +264,18 @@ public class ContainerManager extends EventManager {
                 }
                 
                 fChangedPartitioningRegion = null;
-            	fIsDocumentListenerBusy = false;
-                processNextModification();
                 
+                System.out.println("Iteration");
+                
+            	Container.processNextDocumentAccessRequest(fDocument);
                 updateContainerPresentaions();
+            	     	
                 /* For debug */
                 
                 fireDebugNotification(new ContainerManagerEvent(null));
             }
 
+            
             private void onPartitioningChanged(DocumentEvent event, int unmodifiedOffset) throws BadLocationException, BadPartitioningException {
 
             	/* Remove all elements within changed area */
@@ -309,7 +312,8 @@ public class ContainerManager extends EventManager {
                         
                     	// XXX add container                    	                    	                    	
                         
-                    	String containerID = loadContainerIDFromTextRegion(containerTextRegion);                    	
+                    	String containerID =
+                    			Container.getContainerIDFromTextRegion(containerTextRegion);                    	
                     	
                     	Container original = fID2ContainerMap.get(containerID); 
                     	if (original != null) {
@@ -326,7 +330,6 @@ public class ContainerManager extends EventManager {
                         if (original == null) {
                         	fireContainerCreated(new ContainerManagerEvent(container));
                         } else {
-                            saveContainerID2TextRegion(container, containerID);
                         	fireContainerDuplicated(new ContainerManagerEvent(container, original));
                         }
                     }
@@ -334,6 +337,7 @@ public class ContainerManager extends EventManager {
                 }
             }
 
+            
             private void onChangesInsidePad(Container container, DocumentEvent event) throws BadLocationException, BadPartitioningException {
             	ITypedRegion region = ((IDocumentExtension3) fDocument)
                 	.getPartition(IConfiguration.PARTITIONING_ID, event.getOffset(), false);
@@ -344,6 +348,7 @@ public class ContainerManager extends EventManager {
                 container.updatePosition(region.getOffset(), region.getLength());
             }
 
+            
             private void moveUnmodifiedPads(int offset, int delta) {
             	Container from = fContainers.ceiling(Container.atOffset(offset));
             	if (from == null)
@@ -352,16 +357,17 @@ public class ContainerManager extends EventManager {
                 NavigableSet<Container> tail = fContainers.tailSet(from, true);
                 Iterator<Container> it = tail.iterator();
                 while (it.hasNext()) {
-                    Container container = it.next();                                        
+                    Container container = it.next();
                     Position position = container.getPosition();
                     
                     // XXX update container
-                    container.updatePosition(			 
+                    container.updatePosition(
                     	position.getOffset() + delta,
                     	position.getLength());
                 }
             }
-             
+            
+            
             protected Container getContainerHavingOffset(int offset) {
             	Container c = fContainers.lower(Container.atOffset(offset));
             	if (c != null && c.getPosition().includes(offset)) {
@@ -378,23 +384,4 @@ public class ContainerManager extends EventManager {
         fDocument.addDocumentPartitioningListener(listener);
         fDocument.addDocumentListener(listener);
     }
-
-    
-    /* Additional functions */
-    
-	protected String loadContainerIDFromTextRegion(String text) {	
-		int from = IConfiguration.EMBEDDED_REGION_BEGINS.length();
-		int to = text.indexOf(IConfiguration.EMBEDDED_REGION_ENDS);
-		
-		return text.substring(from, to);		
-	}
-	
-	protected void saveContainerID2TextRegion(Container container, String newContainerID) {
-		int from = container.getPosition().getOffset() + IConfiguration.EMBEDDED_REGION_BEGINS.length();
-		int length = container.getPosition().getLength()
-				- IConfiguration.EMBEDDED_REGION_BEGINS.length()
-				- IConfiguration.EMBEDDED_REGION_ENDS.length();
-		
-		requestDocumentModification(fDocument, from, length, newContainerID);
-	}
 }
