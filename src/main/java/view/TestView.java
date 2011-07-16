@@ -20,7 +20,6 @@ import container.Container;
 import container.ContainerManager;
 import container.ContainerManagerEvent;
 import container.IContainerManagerListener;
-import container.StyledTextManager;
 
 public class TestView extends ViewPart {
 	public static final String ID = "Test.view";
@@ -36,8 +35,6 @@ public class TestView extends ViewPart {
 	
 	public TestView() {
 		fDocument = new Document();
-		fContainerManager = new ContainerManager(fDocument);
-		fPadManager = new PadManager(fContainerManager);
 	}
 
 	/* XXX: Временное решения для обеспечения возможности добавление 
@@ -59,7 +56,10 @@ public class TestView extends ViewPart {
 		fTextViewer = new TextViewer(parent, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL);
 		fTextViewer.setDocument(fDocument);
 		//Container.setStyledTextManager(new StyledTextManager(fTextViewer.getTextWidget()));
-		Container.setStyledTextManager(fTextViewer.getTextWidget());
+		Container.setStyledText(fTextViewer.getTextWidget());
+		
+		fContainerManager = new ContainerManager(fDocument, fTextViewer.getTextWidget());
+		fPadManager = new PadManager(fContainerManager);
 		
 		Button button = new Button(parent, SWT.PUSH);
 		

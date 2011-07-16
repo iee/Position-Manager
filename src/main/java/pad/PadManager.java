@@ -30,7 +30,7 @@ public class PadManager {
     }
 	
 	public void addPad(Pad pad, int location) {
-		String containerID = ContainerManager.allocateContainerID();		
+		String containerID = ContainerManager.allocateContainerID();
 		fSuspendedPads.put(containerID, pad);		
 		fContainerManager.RequestContainerAllocation(containerID, location);
 	}

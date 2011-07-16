@@ -23,6 +23,8 @@ import org.eclipse.jface.text.ITypedRegion;
 import org.eclipse.jface.text.Position;
 import org.eclipse.jface.text.rules.FastPartitioner;
 import org.eclipse.swt.custom.StyledText;
+import org.eclipse.swt.events.VerifyEvent;
+import org.eclipse.swt.events.VerifyListener;
 
 public class ContainerManager extends EventManager {
 
@@ -147,7 +149,7 @@ public class ContainerManager extends EventManager {
     	Iterator<Container> it = fContainers.iterator();
     	while (it.hasNext()) {
     	    Container container = it.next();
-//    	    container.setVisiable(true);
+    	    container.setVisiable(true);
     	    container.updatePresentation();
     	}
     }
@@ -158,22 +160,18 @@ public class ContainerManager extends EventManager {
     
 //    private boolean allowStyledTextModification;
     
-    protected void initDocumentListener() {
-    /*    
+    protected void initDocumentListener() {  
     	fStyledText.addVerifyListener(new VerifyListener() {
 
 			@Override
 			public void verifyText(VerifyEvent e) {		
-				if (!allowStyledTextModification) {
-	            	Iterator<Container> it = fContainers.iterator();
-	            	while (it.hasNext()) {
-	            		Container c = it.next();
-	            		c.setVisiable(false);
-	            	}
+				Iterator<Container> it = fContainers.iterator();
+				while (it.hasNext()) {
+					Container c = it.next();
+					c.setVisiable(false);
 				}
 			}
         });
-        */
         
     	class DocumentListener implements
         IDocumentListener, IDocumentPartitioningListener, IDocumentPartitioningListenerExtension2
