@@ -141,7 +141,7 @@ public class ContainerManager extends EventManager {
     /* Presentation update */
     
     
-    private void updateContainerPresentaions() {
+    void updateContainerPresentaions() {
     	Iterator<Container> it = fContainers.iterator();
     	while (it.hasNext()) {
     	    Container container = it.next();
@@ -177,6 +177,7 @@ public class ContainerManager extends EventManager {
 			}
         });
     	
+    	
     	/*
     	 * If caret is inside Container's text region, moving it to the beginning of line
     	 */    	
@@ -191,8 +192,6 @@ public class ContainerManager extends EventManager {
     	});
     	
     	
-    	
-    	        
     	class DocumentListener implements
         IDocumentListener, IDocumentPartitioningListener, IDocumentPartitioningListenerExtension2
         {

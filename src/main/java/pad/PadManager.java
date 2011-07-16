@@ -70,7 +70,7 @@ public class PadManager {
 				Pad original = fPads.get(event.getOriginalContainer().getContainerID());
 				Assert.isNotNull(original);
 				
-				Pad pad = new Pad(containerID);
+				Pad pad = original.copy(containerID);
 				pad.attachContainer(container);
 				fPads.put(containerID, pad);
 			}

@@ -12,7 +12,6 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.part.ViewPart;
 
-import pad.Pad;
 import pad.PadManager;
 import plugin.ImagePad;
 import plugin.PadDT;
@@ -38,7 +37,6 @@ public class TestView extends ViewPart {
 		initPadPlatform(parent);
 		
 		initColendarButton(parent);
-		initSimplePadButton(parent);
 		initImageButton(parent);
 
 		fContainerTreeViewer = new TreeViewer(parent);		
@@ -67,9 +65,10 @@ public class TestView extends ViewPart {
 	private void initPadPlatform(Composite parent) {
 		fDocument = new Document();		
 		fTextViewer = new TextViewer(parent, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL);
-		fTextViewer.setDocument(fDocument);		
-		Container.setStyledText(fTextViewer.getTextWidget());		
+		fTextViewer.setDocument(fDocument);
 		fContainerManager = new ContainerManager(fDocument, fTextViewer.getTextWidget());
+		Container.setStyledText(fTextViewer.getTextWidget());	
+		Container.setContainerManager(fContainerManager);
 		fPadManager = new PadManager(fContainerManager);
 	}
 	
@@ -105,23 +104,7 @@ public class TestView extends ViewPart {
 		});
 	}
 	
-	
-	private void initSimplePadButton(Composite parent) {
-		Button button = new Button(parent, SWT.PUSH);
-		button.setText("Add simple pad");
-		
-		button.addMouseListener(new MouseListener() {
-			@Override
-			public void mouseDown(MouseEvent e) {				
-				fPadManager.addPad(new Pad(), fTextViewer.getTextWidget().getCaretOffset());
-			}
-			
-			@Override public void mouseUp(MouseEvent e) {}
-			@Override public void mouseDoubleClick(MouseEvent e) {}
-		});
-	}
 
-	
 	@Override
 	public void setFocus() {
 		fTextViewer.getControl().setFocus();

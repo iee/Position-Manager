@@ -3,42 +3,46 @@ package pad;
 import java.util.UUID;
 
 import org.eclipse.core.runtime.Assert;
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 
 import container.Container;
 
 
-public class Pad
+public abstract class Pad
 {
 	protected String	fContainerID;
 	protected Container	fContainer;
 	protected Composite fComposite;
 
+	
 	public Pad() {
 		fContainerID = UUID.randomUUID().toString();
 	}
 	
-	Pad(String id)
+	
+	public Pad(String id)
 	{
 		fContainerID = id;
 	}
+	
 	
 	public String get—ontainerID()
 	{
 		return fContainerID;
 	}
 	
+	
 	public boolean isContainerAttached()
 	{
 		return fContainer != null;
 	}
 	
+	
 	public Container getContainer()
 	{
 		return fContainer;
 	}
+	
 	
 	public void attachContainer(Container container)
 	{
@@ -51,6 +55,7 @@ public class Pad
 		fContainer.getComposite().pack();
 	}
 	
+	
 	public void detachContainer()
 	{
 		Assert.isLegal(isContainerAttached(), "No container attached");
@@ -58,16 +63,19 @@ public class Pad
 		
 		fContainer = null;
 	}
-		
-	public void createPartControl(Composite parent)
-	{
-//		parent.setBackground(parent.getDisplay().getSystemColor(SWT.COLOR_DARK_BLUE));
-//		parent.setSize(new Point(5, 5));
-
-		Button button = new Button(parent, SWT.PUSH);
-		button.setText("Cat");
-		button.setBounds(0, 0, 100, 100);
-		parent.setSize(button.getSize());
-
-	}
+	
+	
+	/* Abstract methods */
+	
+	/**
+	 * Method is called when Container is attached to Pad
+	 */
+	public abstract void createPartControl(Composite parent);
+	
+	
+	/**
+	 * Copy pad with @param containerID
+	 * @return
+	 */
+	public abstract Pad copy(String containerID);
 }

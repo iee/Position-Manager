@@ -11,6 +11,8 @@ import org.eclipse.swt.custom.LineStyleEvent;
 import org.eclipse.swt.custom.LineStyleListener;
 import org.eclipse.swt.custom.StyleRange;
 import org.eclipse.swt.custom.StyledText;
+import org.eclipse.swt.events.ControlEvent;
+import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.graphics.GlyphMetrics;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
@@ -24,19 +26,31 @@ public class Container {
 	private boolean   fIsTextRegionReleaseRequested;
 
 	private LineStyleListener fLineStyleListener;
+	private ControlListener fCompositeResizeListener;
 	
 	private static StyledText fStyledText;
+	private static ContainerManager fContainerManager;
+	
 	
     private static Queue<Container> fContainerDocumentAccessQueue =
     	new ConcurrentLinkedQueue<Container>();
 
     
     /**
-     * Sets static syteldText instance
+     * Sets static StyledText instance
      * @param styledText
      */
 	public static void setStyledText(StyledText styledText) {
 		fStyledText = styledText;
+	}
+	
+	
+    /**
+     * Sets static ContainerManager instance
+     * @param styledText
+     */
+	public static void setContainerManager(ContainerManager containerManager) {
+		fContainerManager = containerManager;
 	}
 	
 	
@@ -80,11 +94,25 @@ public class Container {
 			}
 		};
 		fStyledText.addLineStyleListener(fLineStyleListener);
+		
+		
+		fCompositeResizeListener = new ControlListener() {
+
+			@Override
+			public void controlResized(ControlEvent e) {
+				fStyledText.redraw();
+				fContainerManager.updateContainerPresentaions();
+			}
+			
+			@Override public void controlMoved(ControlEvent e) {}
+		};		
+		fComposite.addControlListener(fCompositeResizeListener);
 	}
 	
 	
 	private void releaseListeners() {
 		fStyledText.removeLineStyleListener(fLineStyleListener);
+		fComposite.removeControlListener(fCompositeResizeListener);
 	}
 
 	
@@ -128,8 +156,8 @@ public class Container {
 	 * Disposes containers's SWT-composite.
 	 */
 	void dispose() {
-		fComposite.dispose();
 		releaseListeners();
+		fComposite.dispose();
 		fIsDisposed = true;
 	}
 	
