@@ -14,6 +14,7 @@ import org.eclipse.ui.part.ViewPart;
 
 import pad.Pad;
 import pad.PadManager;
+import plugin.ImagePad;
 import plugin.PadDT;
 
 import container.Container;
@@ -26,103 +27,101 @@ public class TestView extends ViewPart {
 
 	private TextViewer fTextViewer;
 	private TreeViewer fContainerTreeViewer;
-	private TreeViewer fPadTreeViewer;
-	//private TreeViewer fCheckTreeViewer;
+//	private TreeViewer fPadTreeViewer;
 	
 	private IDocument fDocument;
 	private ContainerManager fContainerManager;
-	private static PadManager fPadManager;
-	
-	public TestView() {
-		fDocument = new Document();
-	}
-
-	/* XXX: Временное решения для обеспечения возможности добавление 
-	 * своих действия на главный контрол */
-	private static Composite fMainComposite;
-	public static Composite getMainComposite()
-	{
-		return fMainComposite;
-	}
-	
-	public static PadManager getPadManager()
-	{
-		return fPadManager;
-	}
-	
+	private PadManager fPadManager;
+		
 	@Override
 	public void createPartControl(Composite parent) {
-		fMainComposite = parent;
-		fTextViewer = new TextViewer(parent, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL);
-		fTextViewer.setDocument(fDocument);
-		//Container.setStyledTextManager(new StyledTextManager(fTextViewer.getTextWidget()));
-		Container.setStyledText(fTextViewer.getTextWidget());
+		initPadPlatform(parent);
 		
-		fContainerManager = new ContainerManager(fDocument, fTextViewer.getTextWidget());
-		fPadManager = new PadManager(fContainerManager);
-		
-		Button button = new Button(parent, SWT.PUSH);
-		
-		button.addMouseListener(new MouseListener() {
-			@Override
-			public void mouseDown(MouseEvent e) {				
-				fPadManager.addPad(new Pad("PadID"), 0);
-			}
-			
-			@Override
-			public void mouseUp(MouseEvent e) {
-			}			
-			
-			@Override
-			public void mouseDoubleClick(MouseEvent e) {
-			}
-		});
-		
-		button.setText("Add pad");
-		
-		// Register plugin
-		new PadDT("PadDT");
-		
-		// button.Add
-		
-		//fTextViewer.setInput(getViewSite());
+		initColendarButton(parent);
+		initSimplePadButton(parent);
+		initImageButton(parent);
 
 		fContainerTreeViewer = new TreeViewer(parent);		
 		fContainerTreeViewer.setLabelProvider(new LabelProvider());
 		fContainerTreeViewer.setContentProvider(new ContainerTreeViewerContentProvider());
 		fContainerTreeViewer.setInput(fContainerManager);
 		
-		fPadTreeViewer = new TreeViewer(parent);
+/*		fPadTreeViewer = new TreeViewer(parent);
 		fPadTreeViewer.setLabelProvider(new LabelProvider());
 		fPadTreeViewer.setContentProvider(new PadTreeViewerContentProvider());
-		fPadTreeViewer.setInput(fPadManager);
-		
-		//fCheckTreeViewer = new TreeViewer(parent);		
-		//fCheckTreeViewer.setLabelProvider(new LabelProvider());
-		//fCheckTreeViewer.setContentProvider(new TreeViewerContentProviderCheck());
-		//fCheckTreeViewer.setInput(fContainerManager);
-		
+		fPadTreeViewer.setInput(fPadManager); */
+				
 		fContainerManager.addContainerManagerListener(new IContainerManagerListener() {
 			@Override
 			public void debugNotification(ContainerManagerEvent event) {
 				fContainerTreeViewer.refresh();
-				fPadTreeViewer.refresh();
+//				fPadTreeViewer.refresh();
 			}
 			
+			@Override public void containerCreated(ContainerManagerEvent event) {}
+			@Override public void containerDuplicated(ContainerManagerEvent event) {}
+			@Override public void containerRemoved(ContainerManagerEvent event) {}
+		});
+	}
+	
+	private void initPadPlatform(Composite parent) {
+		fDocument = new Document();		
+		fTextViewer = new TextViewer(parent, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL);
+		fTextViewer.setDocument(fDocument);		
+		Container.setStyledText(fTextViewer.getTextWidget());		
+		fContainerManager = new ContainerManager(fDocument, fTextViewer.getTextWidget());
+		fPadManager = new PadManager(fContainerManager);
+	}
+	
+	
+	private void initImageButton(Composite parent) {
+		Button button = new Button(parent, SWT.PUSH);
+		button.setText("Add image");
+		
+		button.addMouseListener(new MouseListener() {
 			@Override
-			public void containerCreated(ContainerManagerEvent event) {
+			public void mouseDown(MouseEvent e) {				
+				fPadManager.addPad(new ImagePad(), fTextViewer.getTextWidget().getCaretOffset());
 			}
-
+			
+			@Override public void mouseUp(MouseEvent e) {}
+			@Override public void mouseDoubleClick(MouseEvent e) {}
+		});
+	}
+	
+	
+	private void initColendarButton(Composite parent) {
+		Button button = new Button(parent, SWT.PUSH);
+		button.setText("Add calendar");
+		
+		button.addMouseListener(new MouseListener() {
 			@Override
-			public void containerDuplicated(ContainerManagerEvent event) {	
+			public void mouseDown(MouseEvent e) {
+				fPadManager.addPad(new PadDT(), fTextViewer.getTextWidget().getCaretOffset());
 			}
-
+			
+			@Override public void mouseUp(MouseEvent e) {}
+			@Override public void mouseDoubleClick(MouseEvent e) {}
+		});
+	}
+	
+	
+	private void initSimplePadButton(Composite parent) {
+		Button button = new Button(parent, SWT.PUSH);
+		button.setText("Add simple pad");
+		
+		button.addMouseListener(new MouseListener() {
 			@Override
-			public void containerRemoved(ContainerManagerEvent event) {				
+			public void mouseDown(MouseEvent e) {				
+				fPadManager.addPad(new Pad(), fTextViewer.getTextWidget().getCaretOffset());
 			}
+			
+			@Override public void mouseUp(MouseEvent e) {}
+			@Override public void mouseDoubleClick(MouseEvent e) {}
 		});
 	}
 
+	
 	@Override
 	public void setFocus() {
 		fTextViewer.getControl().setFocus();

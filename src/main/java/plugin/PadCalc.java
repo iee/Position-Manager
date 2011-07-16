@@ -6,8 +6,7 @@ import pad.Pad;
 
 public class PadCalc extends Pad {
 
-	public PadCalc(String id) {
-		super(id);
+	public PadCalc() {
 		// TODO Auto-generated constructor stub
 	}
 	

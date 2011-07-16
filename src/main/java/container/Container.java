@@ -27,16 +27,18 @@ public class Container {
 	
 	private static StyledText fStyledText;
 	
-	
-	
     private static Queue<Container> fContainerDocumentAccessQueue =
     	new ConcurrentLinkedQueue<Container>();
 
-
-//	private static int fCount = 0;
+    
+    /**
+     * Sets static syteldText instance
+     * @param styledText
+     */
 	public static void setStyledText(StyledText styledText) {
 		fStyledText = styledText;
 	}
+	
 	
 	/**
 	 * Creates new container with @param containerID at @param position
@@ -45,54 +47,66 @@ public class Container {
 	 */
 	Container(Position position, String containerID) {
 		fPosition = position;
-		fContainerID = containerID;
-		
+		fContainerID = containerID;		
 		fIsDisposed = false;
 		fIsTextRegionReleaseRequested = false;
 		
 		fComposite = new Composite(fStyledText, SWT.NONE);
 		
-		initListeners();
-		
+		initListeners();		
 		requestTextRegionUpdate();
-		//updatePresentation();
 	}
+	
 	
 	private void initListeners() {
 		fLineStyleListener = new LineStyleListener() {
 			@Override
 			public void lineGetStyle(LineStyleEvent e) {
-				if (e.lineText.startsWith("<")) {
-					StyleRange style = new StyleRange();
-					style.start = e.lineOffset;
-					style.length = 1;
-					style.metrics = new GlyphMetrics(fComposite.getSize().y, 0, fComposite.getSize().x);
-					e.styles = new StyleRange[] { style };
+				String containerID = getContainerIDFromTextRegion(e.lineText);				
+				if (containerID != null && containerID.equals(fContainerID)) {
+					StyleRange compositeStyle = new StyleRange();
+					compositeStyle.start = e.lineOffset;
+					compositeStyle.length = 1;
+					compositeStyle.metrics = new GlyphMetrics(
+						fComposite.getSize().y, 0, fComposite.getSize().x);
+					
+					StyleRange hiddenTextStyle = new StyleRange();
+					hiddenTextStyle.start = e.lineOffset + 1;
+					hiddenTextStyle.length = e.lineText.length() - 1;
+					hiddenTextStyle.metrics = new GlyphMetrics(0, 0, 0);
+					
+					e.styles = new StyleRange[] { compositeStyle, hiddenTextStyle };
 				}
 			}
-		};		
+		};
 		fStyledText.addLineStyleListener(fLineStyleListener);
 	}
+	
 	
 	private void releaseListeners() {
 		fStyledText.removeLineStyleListener(fLineStyleListener);
 	}
 
+	
 	public String getContainerID() {
 		return fContainerID;
 	}
+	
 	
 	public Position getPosition() {
 		return fPosition;
 	}
 	
+	
 	public Composite getComposite() {
 		return fComposite;
 	}
 	
+	
 	public boolean isDisposed() {
 		return fIsDisposed;
 	}
+	
 	
 	protected boolean isTextRegionReleaseRequested() {
 		return fIsTextRegionReleaseRequested;
@@ -166,11 +180,15 @@ public class Container {
 	 * @param textRegion
 	 * @return Container's id
 	 */
-	static String getContainerIDFromTextRegion(String textRegion) {	
+	static String getContainerIDFromTextRegion(String textRegion) {
 		int from = IConfiguration.EMBEDDED_REGION_BEGINS.length();
 		int to = textRegion.indexOf(IConfiguration.EMBEDDED_REGION_ENDS);
 		
-		return textRegion.substring(from, to);
+		try {
+			return textRegion.substring(from, to);
+		} catch (IndexOutOfBoundsException e) {
+			return null;
+		}
 	}
 	
 	

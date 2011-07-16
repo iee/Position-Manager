@@ -1,8 +1,9 @@
 package pad;
 
+import java.util.UUID;
+
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 
@@ -11,18 +12,22 @@ import container.Container;
 
 public class Pad
 {
-	protected String	fPadID;
+	protected String	fContainerID;
 	protected Container	fContainer;
 	protected Composite fComposite;
 
-	public Pad(String id)
-	{
-		fPadID = id;
+	public Pad() {
+		fContainerID = UUID.randomUUID().toString();
 	}
 	
-	public String getID()
+	Pad(String id)
 	{
-		return fPadID;
+		fContainerID = id;
+	}
+	
+	public String get—ontainerID()
+	{
+		return fContainerID;
 	}
 	
 	public boolean isContainerAttached()
@@ -39,13 +44,18 @@ public class Pad
 	{
 		Assert.isNotNull(container);
 		Assert.isLegal(!isContainerAttached(), "Another container is already attached");
+		Assert.isLegal(fContainerID.equals(container.getContainerID()));
+		
 		fContainer = container;
 		createPartControl(fContainer.getComposite());
+		fContainer.getComposite().pack();
 	}
 	
 	public void detachContainer()
 	{
 		Assert.isLegal(isContainerAttached(), "No container attached");
+		Assert.isLegal(fContainerID.equals(fContainer.getContainerID()));
+		
 		fContainer = null;
 	}
 		

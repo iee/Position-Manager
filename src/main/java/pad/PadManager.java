@@ -28,11 +28,10 @@ public class PadManager {
 	public Object[] getElements() {
 		return fPads.keySet().toArray();
     }
-	
+		
 	public void addPad(Pad pad, int location) {
-		String containerID = ContainerManager.allocateContainerID();
-		fSuspendedPads.put(containerID, pad);		
-		fContainerManager.RequestContainerAllocation(containerID, location);
+		fSuspendedPads.put(pad.get—ontainerID(), pad);		
+		fContainerManager.RequestContainerAllocation(pad.get—ontainerID(), location);
 	}
 	
 	public void removePad(Pad pad) {
@@ -43,6 +42,7 @@ public class PadManager {
 	}
 	
 	/* Internal functions */
+
 		
 	protected void InitListeners() {
 		fContainerManager.addContainerManagerListener(new IContainerManagerListener() {

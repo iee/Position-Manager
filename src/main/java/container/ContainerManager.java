@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.UUID;
 
 import org.eclipse.core.commands.common.EventManager;
 import org.eclipse.core.runtime.Assert;
@@ -22,6 +23,8 @@ import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.ITypedRegion;
 import org.eclipse.jface.text.Position;
 import org.eclipse.jface.text.rules.FastPartitioner;
+import org.eclipse.swt.custom.CaretEvent;
+import org.eclipse.swt.custom.CaretListener;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.VerifyEvent;
 import org.eclipse.swt.events.VerifyListener;
@@ -36,17 +39,10 @@ public class ContainerManager extends EventManager {
     private final NavigableSet<Container> fContainers;
     private final ContainerComparator fContainerComparator;
     
-    private static long fNextContainerID = 0;
-    
     
     /* Public interface */
+      
 
-    
-    public static String allocateContainerID() {
-    	return String.format("%d", fNextContainerID++);
-    }
-    
-    
     public Object[] getElements() {
         return fContainers.toArray();
     }
@@ -161,10 +157,18 @@ public class ContainerManager extends EventManager {
 //    private boolean allowStyledTextModification;
     
     protected void initDocumentListener() {  
+   	
     	fStyledText.addVerifyListener(new VerifyListener() {
-
 			@Override
 			public void verifyText(VerifyEvent e) {		
+            	/* Disallow modification within Container's text region */
+				if (getContainerHavingOffset(e.start) != null ||
+            			getContainerHavingOffset(e.end) != null) {
+					e.doit = false;
+					return;
+            	}
+				
+		    	/* Setting all Containers to invisible state */
 				Iterator<Container> it = fContainers.iterator();
 				while (it.hasNext()) {
 					Container c = it.next();
@@ -172,7 +176,23 @@ public class ContainerManager extends EventManager {
 				}
 			}
         });
-        
+    	
+    	/*
+    	 * If caret is inside Container's text region, moving it to the beginning of line
+    	 */    	
+    	fStyledText.addCaretListener(new CaretListener() {
+			@Override
+			public void caretMoved(CaretEvent e) {
+				if (getContainerHavingOffset(e.caretOffset) != null) {
+					int lineBeginOffset = fStyledText.getOffsetAtLine(fStyledText.getLineAtOffset(e.caretOffset));
+					fStyledText.setCaretOffset(lineBeginOffset);
+				}
+			}    		
+    	});
+    	
+    	
+    	
+    	        
     	class DocumentListener implements
         IDocumentListener, IDocumentPartitioningListener, IDocumentPartitioningListenerExtension2
         {
@@ -315,7 +335,7 @@ public class ContainerManager extends EventManager {
                     	
                     	Container original = fID2ContainerMap.get(containerID); 
                     	if (original != null) {
-                    		containerID = allocateContainerID();
+                    		containerID = UUID.randomUUID().toString();
                     	}
                     	
                     	Container container = new Container(
@@ -365,15 +385,7 @@ public class ContainerManager extends EventManager {
                 }
             }
             
-            
-            protected Container getContainerHavingOffset(int offset) {
-            	Container c = fContainers.lower(Container.atOffset(offset));
-            	if (c != null && c.getPosition().includes(offset)) {
-            		return c;
-            	}
-            	return null;
-            }
-            
+
             @Override public void documentPartitioningChanged(IDocument document) {}
             @Override public void documentAboutToBeChanged(DocumentEvent event) {}
         }
@@ -381,5 +393,14 @@ public class ContainerManager extends EventManager {
         DocumentListener listener = new DocumentListener();
         fDocument.addDocumentPartitioningListener(listener);
         fDocument.addDocumentListener(listener);
+    }
+    
+    
+    protected Container getContainerHavingOffset(int offset) {
+    	Container c = fContainers.lower(Container.atOffset(offset));
+    	if (c != null && c.getPosition().includes(offset)) {
+    		return c;
+    	}
+    	return null;
     }
 }
