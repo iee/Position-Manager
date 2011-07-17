@@ -147,7 +147,7 @@ public class ContainerManager extends EventManager {
     	Iterator<Container> it = fContainers.iterator();
     	while (it.hasNext()) {
     	    Container container = it.next();
-    	    container.setVisiable(true);
+    	    //container.setVisiable(true);
     	    container.updatePresentation();
     	}
     }
@@ -192,8 +192,7 @@ public class ContainerManager extends EventManager {
 			@Override
 			public void caretMoved(CaretEvent e) {
 				if (getContainerHavingOffset(e.caretOffset) != null) {
-					int lineBeginOffset = fStyledText.getOffsetAtLine(fStyledText.getLineAtOffset(e.caretOffset));
-					fStyledText.setCaretOffset(lineBeginOffset);
+					fStyledText.setCaretOffset(e.caretOffset+1);
 				}
 			}    		
     	});

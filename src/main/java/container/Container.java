@@ -218,7 +218,7 @@ public class Container {
     	return
     		IConfiguration.EMBEDDED_REGION_BEGINS +
 			containerID +
-			IConfiguration.EMBEDDED_REGION_ENDS + "\n";
+			IConfiguration.EMBEDDED_REGION_ENDS;
     }
 	
 	
