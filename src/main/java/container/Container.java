@@ -1,11 +1,13 @@
 package container;
 
 import java.util.Queue;
+import java.util.Vector;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.Position;
+import org.eclipse.jface.text.rules.IToken;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.LineStyleEvent;
 import org.eclipse.swt.custom.LineStyleListener;
@@ -19,11 +21,13 @@ import org.eclipse.swt.widgets.Composite;
 
 public class Container {
 
-	private String	  fContainerID;
+	protected String	  fContainerID;
 	private Position  fPosition;	
-	private Composite fComposite;
+	protected Composite fComposite;
+	protected IDocument fDocument;
 	private boolean   fIsDisposed;
 	private boolean   fIsTextRegionReleaseRequested;
+	protected PartitioningScanner fLineScanner;
 
 	private LineStyleListener fLineStyleListener;
 	private ControlListener fCompositeResizeListener;
@@ -59,12 +63,13 @@ public class Container {
 	 * @param position
 	 * @param containerID
 	 */
-	Container(Position position, String containerID) {
+	Container(Position position, String containerID, IDocument document) {
 		fPosition = position;
 		fContainerID = containerID;		
 		fIsDisposed = false;
 		fIsTextRegionReleaseRequested = false;
-		
+		fLineScanner = new PartitioningScanner();
+		fDocument = document;
 		fComposite = new Composite(fStyledText, SWT.NONE);
 		
 		initListeners();		
@@ -74,27 +79,41 @@ public class Container {
 	
 	private void initListeners() {
 		fLineStyleListener = new LineStyleListener() {
+			
 			@Override
-			public void lineGetStyle(LineStyleEvent e) {
-				String containerID = getContainerIDFromTextRegion(e.lineText);				
-				if (containerID != null && containerID.equals(fContainerID)) {
-					StyleRange compositeStyle = new StyleRange();
-					compositeStyle.start = e.lineOffset;
-					compositeStyle.length = 1;
-					compositeStyle.metrics = new GlyphMetrics(
-						fComposite.getSize().y, 0, fComposite.getSize().x);
-					
-					StyleRange hiddenTextStyle = new StyleRange();
-					hiddenTextStyle.start = e.lineOffset + 1;
-					hiddenTextStyle.length = e.lineText.length() - 1;
-					hiddenTextStyle.metrics = new GlyphMetrics(0, 0, 0);
-					
-					e.styles = new StyleRange[] { compositeStyle, hiddenTextStyle };
-				}
+			public void lineGetStyle(LineStyleEvent event) {
+				// TODO Auto-generated method stub
+				Vector<StyleRange> styles = new Vector<StyleRange>();
+				fLineScanner.setRange(fDocument, event.lineOffset, event.lineText.length());
+				
+				IToken token;
+		        while (!(token = fLineScanner.nextToken()).isEOF()) {
+		            if (token == PartitioningScanner.EMBEDDED_TOKEN) {
+		            	StyleRange compositeStyle = new StyleRange();
+						compositeStyle.start = fLineScanner.getTokenOffset();
+						compositeStyle.length = 1;
+						compositeStyle.metrics = new GlyphMetrics(fComposite.getSize().y, 0, fComposite.getSize().x);
+						styles.addElement(compositeStyle);
+						
+						StyleRange hiddenTextStyle = new StyleRange();
+						hiddenTextStyle.start = fLineScanner.getTokenOffset() + 1;
+						hiddenTextStyle.length = fLineScanner.getTokenLength();
+						hiddenTextStyle.metrics = new GlyphMetrics(0, 0, 0);
+						styles.addElement(hiddenTextStyle);
+						
+		            }
+		            if(token == PartitioningScanner.PLAINTEXT_TOKEN)
+		            {
+		            	StyleRange plainTextStyle = new StyleRange(fLineScanner.getTokenOffset(), fLineScanner.getTokenLength(), fStyledText.getForeground(), fStyledText.getBackground());
+		            	styles.addElement(plainTextStyle);
+		            }
+		        }
+		        
+		        event.styles = new StyleRange[styles.size()];
+		        styles.copyInto(event.styles);
 			}
 		};
 		fStyledText.addLineStyleListener(fLineStyleListener);
-		
 		
 		fCompositeResizeListener = new ControlListener() {
 
@@ -111,7 +130,7 @@ public class Container {
 	
 	
 	private void releaseListeners() {
-		fStyledText.removeLineStyleListener(fLineStyleListener);
+		//fStyledText.removeLineStyleListener(fLineStyleListener);
 		fComposite.removeControlListener(fCompositeResizeListener);
 	}
 

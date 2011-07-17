@@ -25,6 +25,8 @@ import org.eclipse.jface.text.Position;
 import org.eclipse.jface.text.rules.FastPartitioner;
 import org.eclipse.swt.custom.CaretEvent;
 import org.eclipse.swt.custom.CaretListener;
+import org.eclipse.swt.custom.ExtendedModifyEvent;
+import org.eclipse.swt.custom.ExtendedModifyListener;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.VerifyEvent;
 import org.eclipse.swt.events.VerifyListener;
@@ -125,7 +127,7 @@ public class ContainerManager extends EventManager {
     	fContainers = new TreeSet<Container>(fContainerComparator);
     	fID2ContainerMap = new TreeMap<String, Container>();
         fDocument = document;
-
+        
         fDocumentPartitioner = new FastPartitioner(
             new PartitioningScanner(),
             new String[] { IConfiguration.CONTENT_TYPE_EMBEDDED });
@@ -168,14 +170,19 @@ public class ContainerManager extends EventManager {
 					return;
             	}
 				
-		    	/* Setting all Containers to invisible state */
-				Iterator<Container> it = fContainers.iterator();
-				while (it.hasNext()) {
-					Container c = it.next();
-					c.setVisiable(false);
-				}
+		    	
 			}
         });
+    	
+    	fStyledText.addExtendedModifyListener(new ExtendedModifyListener() {
+			
+			@Override
+			public void modifyText(ExtendedModifyEvent event) {
+				// TODO Auto-generated method stub
+				/* Setting all Containers to invisible state */
+				
+			}
+		});
     	
     	
     	/*
@@ -190,7 +197,6 @@ public class ContainerManager extends EventManager {
 				}
 			}    		
     	});
-    	
     	
     	class DocumentListener implements
         IDocumentListener, IDocumentPartitioningListener, IDocumentPartitioningListenerExtension2
@@ -339,7 +345,7 @@ public class ContainerManager extends EventManager {
                     	
                     	Container container = new Container(
                         	new Position(region.getOffset(), region.getLength()),
-                        	containerID);
+                        	containerID, fDocument);
                         
                         fID2ContainerMap.put(containerID, container);
                         fContainers.add(container);

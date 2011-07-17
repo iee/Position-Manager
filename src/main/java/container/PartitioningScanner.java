@@ -16,7 +16,7 @@ public class PartitioningScanner extends RuleBasedPartitionScanner {
 	public static final IToken EMBEDDED_TOKEN = new Token(IConfiguration.CONTENT_TYPE_EMBEDDED);
 
 	/** Token which represents the plain text partition. */
-	public static final IToken PLAINTEXT_TOKEN = new Token(IConfiguration.CONENT_TYPE_PLAINTEXT);
+	public static final IToken PLAINTEXT_TOKEN = new Token(IConfiguration.CONTENT_TYPE_PLAINTEXT);
 
 	/** Creates a new embedded partition scanner. */
 	public PartitioningScanner() {
