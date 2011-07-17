@@ -71,6 +71,7 @@ public class Container {
 		fLineScanner = new PartitioningScanner();
 		fDocument = document;
 		fComposite = new Composite(fStyledText, SWT.NONE);
+		this.setVisible(false);
 		
 		initListeners();		
 		requestTextRegionUpdate();
@@ -93,6 +94,7 @@ public class Container {
 						compositeStyle.start = fLineScanner.getTokenOffset();
 						compositeStyle.length = 1;
 						compositeStyle.metrics = new GlyphMetrics(fComposite.getSize().y, 0, fComposite.getSize().x);
+						//compositeStyle.borderStyle = SWT.BORDER_SOLID;
 						styles.addElement(compositeStyle);
 						
 						StyleRange hiddenTextStyle = new StyleRange();
@@ -105,6 +107,7 @@ public class Container {
 		            if(token == PartitioningScanner.PLAINTEXT_TOKEN)
 		            {
 		            	StyleRange plainTextStyle = new StyleRange(fLineScanner.getTokenOffset(), fLineScanner.getTokenLength(), fStyledText.getForeground(), fStyledText.getBackground());
+		            	
 		            	styles.addElement(plainTextStyle);
 		            }
 		        }
@@ -185,7 +188,7 @@ public class Container {
 	 * Sets container's SWT-composite visibility.
 	 * @param isVisiable
 	 */	
-	void setVisiable(boolean isVisiable) {
+	void setVisible(boolean isVisiable) {
 		fComposite.setVisible(isVisiable);
 	}
 	

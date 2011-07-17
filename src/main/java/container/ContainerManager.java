@@ -28,8 +28,11 @@ import org.eclipse.swt.custom.CaretListener;
 import org.eclipse.swt.custom.ExtendedModifyEvent;
 import org.eclipse.swt.custom.ExtendedModifyListener;
 import org.eclipse.swt.custom.StyledText;
+import org.eclipse.swt.events.ModifyEvent;
+import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.VerifyEvent;
 import org.eclipse.swt.events.VerifyListener;
+import org.eclipse.swt.widgets.Caret;
 
 public class ContainerManager extends EventManager {
 
@@ -144,14 +147,36 @@ public class ContainerManager extends EventManager {
     
     
     void updateContainerPresentaions() {
+    	
     	Iterator<Container> it = fContainers.iterator();
     	while (it.hasNext()) {
     	    Container container = it.next();
     	    //container.setVisiable(true);
     	    container.updatePresentation();
+//    	    if (!visibility)
+//        	{
+//    	    	container.setVisible(false);
+//        	}
+    	    
     	}
+    	
     }
-
+    void updateContainerVisibility(boolean visibility) {
+    	Iterator<Container> it = fContainers.iterator();
+    	while (it.hasNext()) {
+    	    Container container = it.next();
+    	    //container.setVisiable(true);
+    	    if (!visibility)
+        	{
+    	    	container.setVisible(false);
+        	} 
+    	    else
+    	    {
+    	    	container.setVisible(true);
+    	    }
+    	}
+    	
+    }
     
     /* Document modification event processing */
     
@@ -169,21 +194,12 @@ public class ContainerManager extends EventManager {
 					e.doit = false;
 					return;
             	}
-				
+				//updateContainerVisibility(true);
 		    	
 			}
         });
     	
-    	fStyledText.addExtendedModifyListener(new ExtendedModifyListener() {
-			
-			@Override
-			public void modifyText(ExtendedModifyEvent event) {
-				// TODO Auto-generated method stub
-				/* Setting all Containers to invisible state */
-				
-			}
-		});
-    	
+    	    	
     	
     	/*
     	 * If caret is inside Container's text region, moving it to the beginning of line
@@ -192,8 +208,12 @@ public class ContainerManager extends EventManager {
 			@Override
 			public void caretMoved(CaretEvent e) {
 				if (getContainerHavingOffset(e.caretOffset) != null) {
+					//Caret plainTextCaret = fStyledText.getCaret();
 					fStyledText.setCaretOffset(e.caretOffset+1);
+					//fStyledText.setCaret(fStyledText.getCaret());
+					
 				}
+				
 			}    		
     	});
     	
@@ -223,7 +243,7 @@ public class ContainerManager extends EventManager {
             	 * It's calculated according following equation
             	 * 'unmodified offset' = max('end of partitioning changed area', 'end of document changed area') - 'moving_delta'
             	 */
-
+            	//updateContainerVisibility(false);
             	int unmodifiedOffset;
             	final int movingDelta = event.getText().length() - event.getLength();
 
@@ -250,7 +270,7 @@ public class ContainerManager extends EventManager {
                         /* Case 1:
                          * Document partitioning is changed, so updating the set of the pads
                          */
-                        onPartitioningChanged(event, unmodifiedOffset);
+                    	onPartitioningChanged(event, unmodifiedOffset);
 
                     } else {
                     	Container current = getContainerHavingOffset(event.getOffset());
@@ -291,7 +311,7 @@ public class ContainerManager extends EventManager {
                 
             	Container.processNextDocumentAccessRequest(fDocument);
                 updateContainerPresentaions();
-            	     	
+                updateContainerVisibility(true);
                 /* For debug */
                 
                 fireDebugNotification(new ContainerManagerEvent(null));
@@ -301,7 +321,7 @@ public class ContainerManager extends EventManager {
             private void onPartitioningChanged(DocumentEvent event, int unmodifiedOffset) throws BadLocationException, BadPartitioningException {
 
             	/* Remove all elements within changed area */
-
+            	updateContainerVisibility(false);
                 int beginRegionOffset = Math.min(event.getOffset(), fChangedPartitioningRegion.getOffset());
 
                 Container from = fContainers.ceiling(Container.atOffset(beginRegionOffset));
@@ -355,8 +375,10 @@ public class ContainerManager extends EventManager {
                         	fireContainerDuplicated(new ContainerManagerEvent(container, original));
                         }
                     }
+                    
                     offset += region.getLength();
                 }
+                
             }
 
             
@@ -378,15 +400,16 @@ public class ContainerManager extends EventManager {
 
                 NavigableSet<Container> tail = fContainers.tailSet(from, true);
                 Iterator<Container> it = tail.iterator();
+                
                 while (it.hasNext()) {
                     Container container = it.next();
                     Position position = container.getPosition();
-                    
                     // XXX update container
                     container.updatePosition(
                     	position.getOffset() + delta,
                     	position.getLength());
                 }
+                
             }
             
 
