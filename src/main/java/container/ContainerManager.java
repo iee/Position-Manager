@@ -47,7 +47,7 @@ public class ContainerManager extends EventManager {
     private final Map<String, Container> fID2ContainerMap;
     private final NavigableSet<Container> fContainers;
     private final ContainerComparator fContainerComparator;
-    
+    private Boolean fDirection;
     
     /* Public interface */
       
@@ -134,6 +134,7 @@ public class ContainerManager extends EventManager {
     	fContainers = new TreeSet<Container>(fContainerComparator);
     	fID2ContainerMap = new TreeMap<String, Container>();
         fDocument = document;
+        fDirection = true; 
         
         fDocumentPartitioner = new FastPartitioner(
             new PartitioningScanner(),
@@ -155,12 +156,7 @@ public class ContainerManager extends EventManager {
     	Iterator<Container> it = fContainers.iterator();
     	while (it.hasNext()) {
     	    Container container = it.next();
-    	    //container.setVisiable(true);
     	    container.updatePresentation();
-//    	    if (!visibility)
-//        	{
-//    	    	container.setVisible(false);
-//        	}
     	    
     	}
     	
@@ -192,7 +188,7 @@ public class ContainerManager extends EventManager {
     	fStyledText.addVerifyListener(new VerifyListener() {
 			@Override
 			public void verifyText(VerifyEvent e) {		
-            	/* Disallow modification within Container's text region */
+				/* Disallow modification within Container's text region */
 				if (getContainerHavingOffset(e.start) != null ||
             			getContainerHavingOffset(e.end) != null) {
 					e.doit = false;
@@ -203,24 +199,27 @@ public class ContainerManager extends EventManager {
 			}
         });
     	
-    	fStyledText.addModifyListener(new ModifyListener() {
+    	fStyledText.addVerifyKeyListener(new VerifyKeyListener() {
 			
 			@Override
-			public void modifyText(ModifyEvent e) {
+			public void verifyKey(VerifyEvent event) {
 				// TODO Auto-generated method stub
+				switch (event.keyCode)
+				{
+					case SWT.ARROW_LEFT:
+					{
+						fDirection = false;
+						break;
+					}
+					case SWT.ARROW_RIGHT:
+					{
+						fDirection = true;
+						break;
+					}
+				}
 				
 			}
 		});
-    	
-    	fStyledText.addExtendedModifyListener(new ExtendedModifyListener() {
-			
-			@Override
-			public void modifyText(ExtendedModifyEvent event) {
-				// TODO Auto-generated method stub
-				//updateContainerVisibility(true);
-			}
-		});
-    	
     	    	
     	/*
     	 * If caret is inside Container's text region, moving it to the beginning of line
@@ -229,7 +228,10 @@ public class ContainerManager extends EventManager {
 			@Override
 			public void caretMoved(CaretEvent e) {
 				if (getContainerHavingOffset(e.caretOffset) != null) {
-					fStyledText.setCaretOffset(e.caretOffset + 1);			
+					if (fDirection)
+						fStyledText.setCaretOffset(e.caretOffset + 1);
+					else
+						fStyledText.setCaretOffset(e.caretOffset - 1);
 				}
 				
 			}    		
