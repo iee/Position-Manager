@@ -229,10 +229,7 @@ public class ContainerManager extends EventManager {
 			@Override
 			public void caretMoved(CaretEvent e) {
 				if (getContainerHavingOffset(e.caretOffset) != null) {
-					//Caret plainTextCaret = fStyledText.getCaret();
-					fStyledText.setCaretOffset(e.caretOffset + 1);
-					//fStyledText.setCaret(fStyledText.getCaret());
-					
+					fStyledText.setCaretOffset(e.caretOffset + 1);			
 				}
 				
 			}    		

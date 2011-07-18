@@ -15,6 +15,7 @@ import org.eclipse.swt.custom.StyleRange;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.events.ControlListener;
+import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.GlyphMetrics;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
@@ -71,7 +72,7 @@ public class Container {
 		fLineScanner = new PartitioningScanner();
 		fDocument = document;
 		fComposite = new Composite(fStyledText, SWT.NONE);
-		this.setVisible(true);
+		this.setVisible(false);
 		
 		initListeners();		
 		requestTextRegionUpdate();
@@ -107,7 +108,6 @@ public class Container {
 		            if(token == PartitioningScanner.PLAINTEXT_TOKEN)
 		            {
 		            	StyleRange plainTextStyle = new StyleRange(fLineScanner.getTokenOffset(), fLineScanner.getTokenLength(), fStyledText.getForeground(), fStyledText.getBackground());
-		            	
 		            	styles.addElement(plainTextStyle);
 		            }
 		        }
@@ -118,23 +118,23 @@ public class Container {
 		};
 		fStyledText.addLineStyleListener(fLineStyleListener);
 		
-		fCompositeResizeListener = new ControlListener() {
-
-			@Override
-			public void controlResized(ControlEvent e) {
-				fStyledText.redraw();
-				fContainerManager.updateContainerPresentaions();
-			}
-			
-			@Override public void controlMoved(ControlEvent e) {}
-		};		
-		fComposite.addControlListener(fCompositeResizeListener);
+//		fCompositeResizeListener = new ControlListener() {
+//
+//			@Override
+//			public void controlResized(ControlEvent e) {
+//				fStyledText.redraw();
+//				fContainerManager.updateContainerPresentaions();
+//			}
+//			
+//			@Override public void controlMoved(ControlEvent e) {}
+//		};		
+//		fComposite.addControlListener(fCompositeResizeListener);
 	}
 	
 	
 	private void releaseListeners() {
-		//fStyledText.removeLineStyleListener(fLineStyleListener);
-		fComposite.removeControlListener(fCompositeResizeListener);
+		fStyledText.removeLineStyleListener(fLineStyleListener);
+		//fComposite.removeControlListener(fCompositeResizeListener);
 	}
 
 	
