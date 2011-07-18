@@ -23,11 +23,15 @@ import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.ITypedRegion;
 import org.eclipse.jface.text.Position;
 import org.eclipse.jface.text.rules.FastPartitioner;
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CaretEvent;
 import org.eclipse.swt.custom.CaretListener;
 import org.eclipse.swt.custom.ExtendedModifyEvent;
 import org.eclipse.swt.custom.ExtendedModifyListener;
 import org.eclipse.swt.custom.StyledText;
+import org.eclipse.swt.custom.VerifyKeyListener;
+import org.eclipse.swt.events.KeyEvent;
+import org.eclipse.swt.events.KeyListener;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.VerifyEvent;
@@ -194,13 +198,30 @@ public class ContainerManager extends EventManager {
 					e.doit = false;
 					return;
             	}
-				//updateContainerVisibility(true);
+				updateContainerVisibility(false);
 		    	
 			}
         });
     	
-    	    	
+    	fStyledText.addModifyListener(new ModifyListener() {
+			
+			@Override
+			public void modifyText(ModifyEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+		});
     	
+    	fStyledText.addExtendedModifyListener(new ExtendedModifyListener() {
+			
+			@Override
+			public void modifyText(ExtendedModifyEvent event) {
+				// TODO Auto-generated method stub
+				//updateContainerVisibility(true);
+			}
+		});
+    	
+    	    	
     	/*
     	 * If caret is inside Container's text region, moving it to the beginning of line
     	 */    	
@@ -209,7 +230,7 @@ public class ContainerManager extends EventManager {
 			public void caretMoved(CaretEvent e) {
 				if (getContainerHavingOffset(e.caretOffset) != null) {
 					//Caret plainTextCaret = fStyledText.getCaret();
-					fStyledText.setCaretOffset(e.caretOffset+1);
+					fStyledText.setCaretOffset(e.caretOffset + 1);
 					//fStyledText.setCaret(fStyledText.getCaret());
 					
 				}
@@ -217,6 +238,7 @@ public class ContainerManager extends EventManager {
 			}    		
     	});
     	
+			   	
     	class DocumentListener implements
         IDocumentListener, IDocumentPartitioningListener, IDocumentPartitioningListenerExtension2
         {
@@ -243,7 +265,7 @@ public class ContainerManager extends EventManager {
             	 * It's calculated according following equation
             	 * 'unmodified offset' = max('end of partitioning changed area', 'end of document changed area') - 'moving_delta'
             	 */
-            	//updateContainerVisibility(false);
+            	//updateContainerVisibility(true);
             	int unmodifiedOffset;
             	final int movingDelta = event.getText().length() - event.getLength();
 

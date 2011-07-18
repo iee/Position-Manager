@@ -71,7 +71,7 @@ public class Container {
 		fLineScanner = new PartitioningScanner();
 		fDocument = document;
 		fComposite = new Composite(fStyledText, SWT.NONE);
-		this.setVisible(false);
+		this.setVisible(true);
 		
 		initListeners();		
 		requestTextRegionUpdate();
